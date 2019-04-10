@@ -1,4 +1,4 @@
-Hexagon <- function (a, b, unitcell = 1, col = "grey", border=NA) {
+Hexagon <- function (a, b, unitcell = 1, col = "black", border=NA) {
     x <- a - unitcell/2
     y <- b - unitcell/2
 
@@ -33,7 +33,7 @@ plot.kohonen <- function (x,
                           bgcol=NULL, zlim = NULL, heatkey = TRUE,
                           property, 
                           codeRendering = NULL, keepMargins = FALSE,
-                          heatkeywidth = .2,
+                          heatkeywidth = .2, zlog = FALSE, 
                           shape = c("round", "straight"),
                           border = "black", ...)
 {
@@ -71,7 +71,7 @@ plot.kohonen <- function (x,
                           zlim = zlim, heatkey = heatkey,
                           keepMargins = keepMargins,
                           heatkeywidth = heatkeywidth, shape = shape,
-                          border = border, ...),
+                          border = border, zlog= zlog, ...),
          changes =
            plot.kohchanges(x = x, main = main,
                            keepMargins = keepMargins, ...),
@@ -209,7 +209,7 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     ncolors <- min(length(unique(property[!is.na(property)])), 20)
   bgcol <- palette.name(ncolors)
 
-  bgcolors <- rep("gray", nrow(x$grid$pts))
+  bgcolors <- rep("black", nrow(x$grid$pts))
   if (contin) {
     showcolors <- as.integer(cut(property,
                                  seq(zlim[1], zlim[2],
@@ -323,9 +323,13 @@ plot.kohchanges <- function(x, main, keepMargins, ...)
 
 plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
                            zlim, heatkey, keepMargins, heatkeywidth,
-                           shape, border, ...)
+                           shape, border, zlog, ...)
 {
-  if (is.null(main)) main <- "Counts plot"
+  if (zlog) { 
+    if (is.null(main)) main <- "log(Counts) plot"
+  } else {
+    if (is.null(main)) main <- "Counts plot"
+  }
   if (is.null(palette.name)) palette.name <- heat.colors
 
   if (is.null(classif) & !is.null(x$unit.classif)) {
@@ -344,6 +348,9 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
   if (max(counts, na.rm = TRUE) < 10) {
     countsp <- factor(counts)
   } else {
+    if (zlog) { 
+      counts<-log10(counts)
+    }
     countsp <- counts
   }
 
@@ -614,7 +621,7 @@ plot.kohcodes <- function(x, whatmap, main, palette.name, bgcol,
 ### Added heatkeywidth parameter in version 2.0.5 (contribution by
 ### Henning Rust)
 
-plot.heatkey <- function (x, zlim, bgcol, labels, contin, heatkeywidth, ...)
+plot.heatkey <- function (x, zlim, bgcol, labels, contin, heatkeywidth, heatkeyborder='black', ...)
 {
   ncolors <- length(bgcol)
 
@@ -627,7 +634,7 @@ plot.heatkey <- function (x, zlim, bgcol, labels, contin, heatkeywidth, ...)
                length = ncolors + 1)
   rect(xleft[1], yleft[1:ncolors],
        xleft[2], yleft[2:(ncolors + 1)],
-       border = "black", col = bgcol,
+       border = heatkeyborder, col = bgcol,
        xpd = TRUE)
 
   cex <- list(...)$cex
