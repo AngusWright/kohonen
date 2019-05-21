@@ -46,7 +46,7 @@ plot.kohonen <- function (x,
                            keepMargins = keepMargins, shape = shape,
                            border = border, ...),  
          property =
-           plot.kohprop(x = x, property, main = main,
+           plot.kohprop(x = x, property, main = main, zlog=zlog, 
                         palette.name = palette.name, ncolors = ncolors,
                         zlim = zlim, heatkey = heatkey,
                         keepMargins = keepMargins,
@@ -167,7 +167,7 @@ plot.kohmapping <- function(x, classif, main, labels, pchs, bgcol,
 plot.kohprop <- function(x, property, main, palette.name, ncolors,
                          zlim, heatkey, keepMargins,
                          heatkeywidth, shape = c("round", "straight"),
-                         border = "black", ...)
+                         border = "black", zlog=FALSE, ...)
 {
   if (is.null(main)) main <- "Property plot"
   if (is.null(palette.name)) palette.name <- heat.colors
@@ -240,10 +240,10 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
   
   if (heatkey) {
     if (length(unique(property)) < 10 & !contin) {
-      plot.heatkey(x, zlim, bgcol, labels = levels(as.factor(property)),
+      plot.heatkey(x, zlim, bgcol, labels = levels(as.factor(property)), zlog, 
                    contin = contin, heatkeywidth = heatkeywidth, ...)
     } else {
-      plot.heatkey(x, zlim, bgcol, labels = NULL, contin = contin,
+      plot.heatkey(x, zlim, bgcol, labels = NULL, contin = contin, zlog, 
                    heatkeywidth = heatkeywidth, ...)
     }
   }
@@ -354,12 +354,14 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
     countsp <- counts
   }
 
-  plot.kohprop(x, property = countsp, main = main,
+  plot.kohprop(x, property = countsp, main = main, zlog=zlog, 
                palette.name = palette.name, ncolors = ncolors,
                zlim = zlim, heatkey = heatkey, 
                keepMargins = keepMargins, heatkeywidth = heatkeywidth,
                shape = shape, border = border, ...)
-
+  if (heatkey) {
+    mtext(side=2,text=ifelse(zlog,'Log(count)','Count'),line=3)
+  }
   invisible(counts)
 }
 
@@ -375,7 +377,7 @@ plot.kohUmatrix <- function(x, classif, main, palette.name,
   cddist[abs(nhbrdist - 1) > .001] <- NA
   
   neigh.dists <- colMeans(cddist, na.rm = TRUE)
-  plot.kohprop(x, property = neigh.dists, main = main,
+  plot.kohprop(x, property = neigh.dists, main = main, zlog=FALSE, 
                palette.name = palette.name, ncolors = ncolors,
                zlim = zlim, heatkey = heatkey,
                keepMargins = keepMargins, heatkeywidth = heatkeywidth,
@@ -410,7 +412,7 @@ plot.kohquality <- function(x, classif, main, palette.name, ncolors,
   hits <- as.integer(names(table(classif)))
   similarities[hits] <- sapply(split(distances, classif), mean)
 
-  plot.kohprop(x, property = similarities, main = main,
+  plot.kohprop(x, property = similarities, main = main, zlog=FALSE, 
                palette.name = palette.name, ncolors = ncolors,
                zlim = zlim, heatkey = heatkey, 
                keepMargins = keepMargins, shape = shape, border = border, ...)
@@ -621,7 +623,7 @@ plot.kohcodes <- function(x, whatmap, main, palette.name, bgcol,
 ### Added heatkeywidth parameter in version 2.0.5 (contribution by
 ### Henning Rust)
 
-plot.heatkey <- function (x, zlim, bgcol, labels, contin, heatkeywidth, heatkeyborder='black', ...)
+plot.heatkey <- function (x, zlim, bgcol, labels, contin, heatkeywidth, heatkeyborder='black', zlog=FALSE,  ...)
 {
   ncolors <- length(bgcol)
 
@@ -636,8 +638,31 @@ plot.heatkey <- function (x, zlim, bgcol, labels, contin, heatkeywidth, heatkeyb
        xleft[2], yleft[2:(ncolors + 1)],
        border = heatkeyborder, col = bgcol,
        xpd = TRUE)
-
+  rect(xleft[1], yleft[1],
+       xleft[2], yleft[(ncolors + 1)],
+       border = T, col = NA,
+       xpd = TRUE)
+  counts<-table(x$unit.classif)
+  if (zlog) { 
+    counts<-density(log10(counts),bw=diff(log10(range(counts)))/50/sqrt(12),kern='rect',n=1e3,from=zlim[1],to=zlim[2])
+  } else {  
+    counts<-density(counts,bw=max(counts)/50/sqrt(12),kern='rect',n=1e3, from=zlim[1],to=zlim[2])
+  }
+  plt<-par(plt=c(0,1,0,1))
+  counts$x<-(counts$x-min(counts$x))
+  counts$x<-counts$x/max(counts$x)
+  lines(smallestx + counts$y/max(counts$y)*heatkeywidth -heatkeywidth - 1, (counts$x*max(yleft)),type='l',col='black')
   cex <- list(...)$cex
+  text(range(xleft)+c(1,-1)*heatkeywidth/10,
+       max(yleft) + 3*heatkeywidth/10,
+       c(0,1),
+       xpd = TRUE, cex=cex)
+  text(sum((range(xleft)+c(1,-1)*heatkeywidth/10))/2,
+       max(yleft) + 6*heatkeywidth/10,
+       c("P"),
+       xpd = TRUE, cex=cex)
+  par(plt=plt)
+
 
   if (contin) {
     zvals <- pretty(zlim)
