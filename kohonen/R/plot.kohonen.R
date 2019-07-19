@@ -780,7 +780,7 @@ plot.heatkey <- function (x, property=table(x$unit.classif),
 ### outside of the map are now drawn even when they are already
 ### present at the other end of the map (easier interpretation)
 
-add.cluster.boundaries <- function(x, clustering, lwd = 5, ...)
+add.cluster.boundaries <- function(x, clustering, lwd = 1, ...)
 {
   grd <- x$grid
   if (grd$toroidal) {
