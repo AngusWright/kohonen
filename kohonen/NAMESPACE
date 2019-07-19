@@ -2,7 +2,8 @@ export("som","xyf", "supersom", "expandMap", "somgrid",
        "classvec2classmat", "classmat2classvec",
        "map", "add.cluster.boundaries", 
        "object.distances", "unit.distances",
-       "getCodes", "check.whatmap", "tricolor")
+       "getCodes", "check.whatmap", "tricolor",
+       "generate.kohgroups","generate.kohgroup.property")
 
 S3method(print, kohonen)
 S3method(plot, kohonen)
