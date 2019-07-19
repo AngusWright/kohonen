@@ -24,20 +24,24 @@ hexagons <- function(x, y, unitcell, col, border) {
 
 
 plot.kohonen <- function (x,
-                          type = c("codes", "changes", "counts",
-                                   "dist.neighbours", "mapping", "property",
-                                   "quality"),
+                          type, 
                           whatmap = NULL,
                           classif = NULL, labels = NULL, pchs = NULL,
                           main = NULL, palette.name = NULL, ncolors,
                           bgcol=NULL, zlim = NULL, heatkey = TRUE,
                           property, 
                           codeRendering = NULL, keepMargins = FALSE,
-                          heatkeywidth = .2, zlog = FALSE, 
+                          heatkeywidth = 10, zlog = FALSE, 
                           shape = c("round", "straight"),
-                          border = "black", ...)
+                          border = NA, ...)
 {
-  type <- match.arg(type)
+  if (!missing(type)) {
+    type <- match.arg(type)
+  } else if (missing(property)) { 
+    type <- 'counts'
+  } else {
+    type <- 'property'
+  }
   
   switch(type,
          mapping =
@@ -51,7 +55,7 @@ plot.kohonen <- function (x,
                         zlim = zlim, heatkey = heatkey,
                         keepMargins = keepMargins,
                         heatkeywidth = heatkeywidth, shape = shape,
-                        border = border, ...),
+                        border = border, whatmap = whatmap,  ...),
          codes =
            plot.kohcodes(x = x, whatmap = whatmap, main = main,
                          palette.name = palette.name, bgcol = bgcol,
@@ -64,7 +68,7 @@ plot.kohonen <- function (x,
                            zlim = zlim, heatkey = heatkey,
                            keepMargins = keepMargins,
                            heatkeywidth = heatkeywidth, shape = shape,
-                           border = border, ...),
+                           border = border, zlog = zlog, ...),
          counts =
            plot.kohcounts(x = x, classif = classif, main = main,
                           palette.name = palette.name, ncolors = ncolors,
@@ -81,7 +85,7 @@ plot.kohonen <- function (x,
                            zlim = zlim, heatkey = heatkey,
                            keepMargins = keepMargins,
                            heatkeywidth = heatkeywidth, shape = shape,
-                           border = border, ...))
+                           border = border, zlog = zlog, ...))
 }
 
 
@@ -165,12 +169,17 @@ plot.kohmapping <- function(x, classif, main, labels, pchs, bgcol,
 
 
 plot.kohprop <- function(x, property, main, palette.name, ncolors,
-                         zlim, heatkey, keepMargins,
+                         zlim, heatkey, keepMargins, na.col='black',outer.col,
                          heatkeywidth, shape = c("round", "straight"),
-                         border = "black", zlog=FALSE, ...)
+                         border = "black", zlog=FALSE, whatmap, ...)
 {
   if (is.null(main)) main <- "Property plot"
-  if (is.null(palette.name)) palette.name <- heat.colors
+  if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
+    BlRd<-colorRampPalette(rev(RColorBrewer::brewer.pal(11,"RdBu")))
+    palette.name <- BlRd
+  } else if (is.null(palette.name)) { 
+    palette.name <- terrain.colors
+  }
 
   margins <- rep(0.6, 4)
   if (heatkey) margins[2] <- margins[2] + 4
@@ -181,8 +190,14 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
   }
   par(mar = margins)
 
+  if (length(property)==1) { 
+    whatmap <- check.whatmap(x, whatmap)
+    main<-colnames(getCodes(x,whatmap))[property]
+    property<-getCodes(x, whatmap)[,property]
+  }
+
   plot(x$grid, ...)
-  title.y <- max(x$grid$pts[,2]) + 1.2
+  title.y <- max(x$grid$pts[,2]) + 3.2
   if (title.y > par("usr")[4] - .2){
     title(main)
   } else {
@@ -209,8 +224,24 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     ncolors <- min(length(unique(property[!is.na(property)])), 20)
   bgcol <- palette.name(ncolors)
 
-  bgcolors <- rep("black", nrow(x$grid$pts))
+  if (missing(outer.col)) { 
+    outer.col<-bgcol[c(1,ncolors)] 
+  } else if (length(outer.col)==1) { 
+    outer.col<-rep(outer.col,2)
+  } else if (any(is.na(outer.col))) { 
+    outer.col[which(is.na(outer.col))]<-bgcol[c(1,ncolors)][which(is.na(outer.col))]
+  }
+
+  bgcolors <- rep(na.col, nrow(x$grid$pts))
   if (contin) {
+    lowcolors <- as.integer(cut(property,
+                                 seq(min(property,na.rm=T),zlim[2],
+                                     length = ncolors + 1),
+                                 include.lowest = TRUE))
+    hicolors <- as.integer(cut(property,
+                                 seq(zlim[1],max(property,na.rm=T),
+                                     length = ncolors + 1),
+                                 include.lowest = TRUE))
     showcolors <- as.integer(cut(property,
                                  seq(zlim[1], zlim[2],
                                      length = ncolors + 1),
@@ -219,6 +250,8 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     showcolors <- as.integer(property)
   }
   bgcolors[!is.na(showcolors)] <- bgcol[showcolors[!is.na(showcolors)]]
+  bgcolors[is.na(showcolors)&!is.na(lowcolors)] <- outer.col[1]
+  bgcolors[is.na(showcolors)&!is.na(hicolors)] <- outer.col[2]
 
   # choose symbol to draw based on shape (round, square), and grid (rect, hex)
   shape <- match.arg(shape)
@@ -240,10 +273,12 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
   
   if (heatkey) {
     if (length(unique(property)) < 10 & !contin) {
-      plot.heatkey(x, zlim, bgcol, labels = levels(as.factor(property)), zlog, 
+      plot.heatkey(x, property, zlim, bgcol, outer.col=outer.col, 
+                   labels = levels(as.factor(property)), zlog, 
                    contin = contin, heatkeywidth = heatkeywidth, ...)
     } else {
-      plot.heatkey(x, zlim, bgcol, labels = NULL, contin = contin, zlog, 
+      plot.heatkey(x, property, zlim, bgcol, outer.col=outer.col,
+                   labels = NULL, contin = contin, zlog, 
                    heatkeywidth = heatkeywidth, ...)
     }
   }
@@ -330,7 +365,13 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
   } else {
     if (is.null(main)) main <- "Counts plot"
   }
-  if (is.null(palette.name)) palette.name <- heat.colors
+  if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
+    BlRd<-colorRampPalette(rev(RColorBrewer::brewer.pal(11,"RdBu")))
+    palette.name <- BlRd
+  } else if (is.null(palette.name)) { 
+    palette.name <- terrain.colors
+  }
+
 
   if (is.null(classif) & !is.null(x$unit.classif)) {
     classif <- x$unit.classif
@@ -367,17 +408,28 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
 
 plot.kohUmatrix <- function(x, classif, main, palette.name,
                             ncolors, zlim, heatkey, keepMargins,
-                            heatkeywidth, shape, border, ...)
+                            heatkeywidth, shape, border,zlog=FALSE, ...)
 {
   if (is.null(main)) main <- "Neighbour distance plot"
-  if (is.null(palette.name)) palette.name <- heat.colors
+  if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
+    BlRd<-colorRampPalette(rev(RColorBrewer::brewer.pal(11,"RdBu")))
+    palette.name <- BlRd
+  } else if (is.null(palette.name)) { 
+    palette.name <- terrain.colors
+  }
 
   nhbrdist <- unit.distances(x$grid)
   cddist <- as.matrix(object.distances(x, type = "codes"))
   cddist[abs(nhbrdist - 1) > .001] <- NA
   
   neigh.dists <- colMeans(cddist, na.rm = TRUE)
-  plot.kohprop(x, property = neigh.dists, main = main, zlog=FALSE, 
+
+  if (zlog) { 
+    neigh.dists<-log10(neigh.dists)
+  }
+  countsp <- counts
+
+  plot.kohprop(x, property = neigh.dists, main = main, zlog=zlog, 
                palette.name = palette.name, ncolors = ncolors,
                zlim = zlim, heatkey = heatkey,
                keepMargins = keepMargins, heatkeywidth = heatkeywidth,
@@ -388,10 +440,15 @@ plot.kohUmatrix <- function(x, classif, main, palette.name,
 
 
 plot.kohquality <- function(x, classif, main, palette.name, ncolors,
-                            zlim, heatkey, keepMargins, shape, border, ...)
+                            zlim, heatkey, keepMargins, shape, border, zlog=FALSE, ...)
 {
   if (is.null(main)) main <- "Quality plot"
-  if (is.null(palette.name)) palette.name <- heat.colors
+  if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
+    BlRd<-colorRampPalette(rev(RColorBrewer::brewer.pal(11,"RdBu")))
+    palette.name <- BlRd
+  } else if (is.null(palette.name)) { 
+    palette.name <- terrain.colors
+  }
 
   distances <- NULL
   if (is.null(classif) & !is.null(x$unit.classif)) {
@@ -412,7 +469,11 @@ plot.kohquality <- function(x, classif, main, palette.name, ncolors,
   hits <- as.integer(names(table(classif)))
   similarities[hits] <- sapply(split(distances, classif), mean)
 
-  plot.kohprop(x, property = similarities, main = main, zlog=FALSE, 
+  if (zlog) { 
+    similarities<-log10(similarities)
+  }
+
+  plot.kohprop(x, property = similarities, main = main, zlog=zlog, 
                palette.name = palette.name, ncolors = ncolors,
                zlim = zlim, heatkey = heatkey, 
                keepMargins = keepMargins, shape = shape, border = border, ...)
@@ -430,7 +491,12 @@ plot.kohcodes <- function(x, whatmap, main, palette.name, bgcol,
     on.exit(par(opar))
   }
 
-  if (is.null(palette.name)) palette.name <- terrain.colors
+  if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
+    BlRd<-colorRampPalette(rev(RColorBrewer::brewer.pal(11,"RdBu")))
+    palette.name <- BlRd
+  } else if (is.null(palette.name)) { 
+    palette.name <- terrain.colors
+  }
 
   whatmap <- check.whatmap(x, whatmap)
   nmaps <- length(whatmap)
@@ -623,7 +689,9 @@ plot.kohcodes <- function(x, whatmap, main, palette.name, bgcol,
 ### Added heatkeywidth parameter in version 2.0.5 (contribution by
 ### Henning Rust)
 
-plot.heatkey <- function (x, zlim, bgcol, labels, contin, heatkeywidth, heatkeyborder='black', zlog=FALSE,  ...)
+plot.heatkey <- function (x, property=table(x$unit.classif),
+                          zlim, bgcol, labels, contin, heatkeywidth, 
+                          heatkeyborder=bgcol, zlog=FALSE, outer.col, ...)
 {
   ncolors <- length(bgcol)
 
@@ -636,22 +704,36 @@ plot.heatkey <- function (x, zlim, bgcol, labels, contin, heatkeywidth, heatkeyb
                length = ncolors + 1)
   rect(xleft[1], yleft[1:ncolors],
        xleft[2], yleft[2:(ncolors + 1)],
-       border = heatkeyborder, col = bgcol,
+       #border = heatkeyborder, col = bgcol,
+       border = bgcol, col = bgcol,
        xpd = TRUE)
+  if (!missing(outer.col)) { 
+    rect(xleft[1], yleft[ncolors+1]+diff(yleft[1:2])/2,
+        xleft[2], yleft[ncolors+1]+diff(yleft[1:2])*3/2,
+        border = TRUE, col = outer.col[2], lwd=2,
+        xpd = TRUE)
+    rect(xleft[1], yleft[1]-diff(yleft[1:2])*3/2,
+        xleft[2], yleft[1]-diff(yleft[1:2])/2,
+        border = TRUE, col = outer.col[1], lwd=2,
+        xpd = TRUE)
+  } 
   rect(xleft[1], yleft[1],
        xleft[2], yleft[(ncolors + 1)],
        border = T, col = NA,
        xpd = TRUE)
-  counts<-table(x$unit.classif)
+  
+  counts<-property[which(is.finite(property))]
+  #print(max(counts))
+  #print(max(counts)/50)
   if (zlog) { 
-    counts<-density(log10(counts),bw=diff(log10(range(counts)))/50/sqrt(12),kern='rect',n=1e3,from=zlim[1],to=zlim[2])
+    counts<-density(log10(counts),bw=abs(diff(zlim))/100/sqrt(12),kern='rect',n=1e3,from=zlim[1],to=zlim[2])
   } else {  
-    counts<-density(counts,bw=max(counts)/50/sqrt(12),kern='rect',n=1e3, from=zlim[1],to=zlim[2])
+    counts<-density(counts,bw=abs(diff(zlim))/100/sqrt(12),kern='rect',n=1e3, from=zlim[1],to=zlim[2])
   }
   plt<-par(plt=c(0,1,0,1))
   counts$x<-(counts$x-min(counts$x))
   counts$x<-counts$x/max(counts$x)
-  lines(smallestx + counts$y/max(counts$y)*heatkeywidth -heatkeywidth - 1, (counts$x*max(yleft)),type='l',col='black')
+  lines(smallestx + counts$y/max(counts$y)*heatkeywidth -heatkeywidth - 1, (counts$x*max(yleft-min(yleft))+min(yleft)),type='l',col='black')
   cex <- list(...)$cex
   text(range(xleft)+c(1,-1)*heatkeywidth/10,
        max(yleft) + 3*heatkeywidth/10,
