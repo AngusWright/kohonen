@@ -6,8 +6,8 @@ generate.kohgroups<-function(som,factor.nbins=Inf,ncores=1,quiet=FALSE) { #{{{
     if (!quiet) cat(paste("Clustering SOM pixels in",factor.nbins,"groups"))
     som.hc = cutree(hclust(dist(som$codes[[1]])), factor.nbins)
     if (!quiet) cat(" - Done\nCalculating pixel-to-group assignment")
-    require(foreach)
-    require(doParallel)
+    suppressPackageStartupMessages(require(foreach))
+    suppressPackageStartupMessages(require(doParallel))
     registerDoParallel(cores=ncores)
     if (!quiet) cat(paste(" with",ncores,"cores"))
     somind<-foreach(i=1:factor.nbins,.combine=rbind,.inorder=FALSE)%dopar%{ 
