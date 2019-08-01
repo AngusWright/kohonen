@@ -36,7 +36,9 @@ plot.kohonen <- function (x,
                           border = NA, ...)
 {
   if (!missing(type)) {
-    type <- match.arg(type)
+    type <- match.arg(type, c('mapping','property','codes',
+                        'quality','counts','changes',
+                        'dist.neighbours'))
   } else if (missing(property)) { 
     type <- 'counts'
   } else {
@@ -93,9 +95,13 @@ plot.somgrid <- function(x, xlim, ylim, ...)
 {
   ## The following two lines leave equal amounts of space on both
   ## sides of the plot if no xlim or ylim are given
+  #if (missing(xlim)) xlim <- c(0, max(x$pts[,1]) + min(x$pts[,1]))
+  #if (missing(ylim)) ylim <-  c(max(x$pts[,2]) + min(x$pts[,2]), 0)
+  #eqscplot(xlim, ylim, axes = FALSE,
+  #         type = "n", xlab = "", ylab = "", ...)
   if (missing(xlim)) xlim <- c(0, max(x$pts[,1]) + min(x$pts[,1]))
   if (missing(ylim)) ylim <-  c(max(x$pts[,2]) + min(x$pts[,2]), 0)
-  eqscplot(xlim, ylim, axes = FALSE,
+  plot(xlim, ylim, axes = FALSE, asp=1,
            type = "n", xlab = "", ylab = "", ...)
 }
 
@@ -196,6 +202,7 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     property<-getCodes(x, whatmap)[,property]
   }
 
+  summary(x$grid)
   plot(x$grid, ...)
   title.y <- max(x$grid$pts[,2]) + 3.2
   if (title.y > par("usr")[4] - .2){
@@ -427,7 +434,6 @@ plot.kohUmatrix <- function(x, classif, main, palette.name,
   if (zlog) { 
     neigh.dists<-log10(neigh.dists)
   }
-  countsp <- counts
 
   plot.kohprop(x, property = neigh.dists, main = main, zlog=zlog, 
                palette.name = palette.name, ncolors = ncolors,
