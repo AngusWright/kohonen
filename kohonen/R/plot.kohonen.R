@@ -227,8 +227,12 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     }
   }
 
-  if (missing(ncolors))
+  if (missing(ncolors)) { 
     ncolors <- min(length(unique(property[!is.na(property)])), 20)
+  } else if (ncolors > length(unique(property[!is.na(property)]))) {
+    ncolors <- floor(length(unique(property[!is.na(property)]))/2)
+    print(ncolors)
+  }
   bgcol <- palette.name(ncolors)
 
   if (missing(outer.col)) { 
