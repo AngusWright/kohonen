@@ -3,7 +3,8 @@ export("som","xyf", "supersom", "expandMap", "somgrid",
        "map", "add.cluster.boundaries", 
        "object.distances", "unit.distances",
        "getCodes", "check.whatmap", "tricolor",
-       "generate.kohgroups","generate.kohgroup.property")
+       "generate.kohgroups","generate.kohgroup.property",
+       "kohparse","kohtrain")
 
 S3method(print, kohonen)
 S3method(plot, kohonen)
@@ -16,6 +17,10 @@ useDynLib(kohonen)
 
 # Import all packages listed as Imports or Depends
 importFrom(MASS, eqscplot)
+import(data.table,foreach,doParallel)
+importFrom(itertools, isplitRows)
+importFrom(helpRfuncs, vecsplit, as.time)
+importFrom(matrixStats, rowAlls)
 
 # Import from default packages
 importFrom("graphics", "abline", "axTicks", "axis", "identify", "polygon",
