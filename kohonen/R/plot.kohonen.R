@@ -110,10 +110,10 @@ plot.kohmapping <- function(x, classif, main, labels, pchs, bgcol,
                             keepMargins, shape = c("round", "straight"),
                             border = "black", ...)
 {
-  if (is.null(main)) main <- "Mapping plot"
+  if (missing(main) || is.null(main)) main <- "Mapping plot"
 
   margins <- rep(0.6, 4)
-  if (main != "") margins[3] <- margins[3] + 2
+  if (is.expression(main) || main != "") margins[3] <- margins[3] + 2
   if (!keepMargins) {
     opar <- par("mar")
     on.exit(par(mar = opar))
@@ -189,7 +189,7 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
 
   margins <- rep(0.6, 4)
   if (heatkey) margins[2] <- margins[2] + 4
-  if (main != "") margins[3] <- margins[3] + 2
+  if (is.expression(main) || main != "") margins[3] <- margins[3] + 2
   if (!keepMargins) {
     opar <- par("mar")
     on.exit(par(mar = opar))
@@ -198,8 +198,10 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
 
   if (length(property)==1) { 
     whatmap <- check.whatmap(x, whatmap)
-    main<-colnames(getCodes(x,whatmap))[property]
     property<-getCodes(x, whatmap)[,property]
+    if (!(is.expression(main) || main != "")) {
+      main<-colnames(getCodes(x,whatmap))[property]
+    }
   }
 
   summary(x$grid)
