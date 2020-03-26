@@ -1,32 +1,32 @@
 
-kohparse<-function(som,data,train.var.expr,data.missing=NA,data.threshold=c(-Inf,Inf),quiet=F,n.cores=1,max.na.frac=1) { #{{{
+kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf),quiet=FALSE,n.cores=1,max.na.frac=1) { #{{{
   #Starting Prompt
   if (!quiet) { 
     timer<-proc.time()[3]
     cat("Running kohparse\n")
   }
   data.len<-nrow(data)
-  if (missing(train.var.expr)) { 
+  if (missing(train.expr)) { 
     if (!quiet) { 
       cat("Loading factor names from SOM\n")
     }
-    train.var.expr<-colnames(som$codes[[1]])
-  } else if (any(train.var.expr!=colnames(som$codes[[1]]))) { 
-    cat(paste("Assuming provided train.var.expr entries map directly onto the training labels!\n",
-            'i.e.\n',paste(collapse=' ',train.var.expr[1:min(length(train.var.expr),3)]),
+    train.expr<-colnames(som$codes[[1]])
+  } else if (any(train.expr!=colnames(som$codes[[1]]))) { 
+    cat(paste("Assuming provided train.expr entries map directly onto the training labels!\n",
+            'i.e.\n',paste(collapse=' ',train.expr[1:min(length(train.expr),3)]),
             '\n         are the equivalent of \n',
-            paste(collapse=' ',colnames(som$codes[[1]])[1:min(length(train.var.expr),3)]),
+            paste(collapse=' ',colnames(som$codes[[1]])[1:min(length(train.expr),3)]),
             '\n'))
-    warning(paste("Assuming provided train.var.expr entries map directly onto the training labels!\n"))
+    warning(paste("Assuming provided train.expr entries map directly onto the training labels!\n"))
   }
   #Scale the data for use in the SOM
-  kohwhiten.output<-kohwhiten(data,train.expr,data.missing=data.missing,data.threshold=data.threshold)
+  kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,data.missing=data.missing,data.threshold=data.threshold)
   data.white<-kohwhiten.output$data.white
   whiten.param<-kohwhiten.output$whiten.param
   #check the max NA fraction parameter 
   if (length(som$maxNA.fraction)==0) { 
     warning(paste("SOM has no maxNA.fraction parameter! Using requested frac:",max.na.frac))
-  } else if (som$maxNAfrac != max.na.frac) { 
+  } else if (som$maxNA.fraction != max.na.frac) { 
     warning(paste("Overwriting SOM maxNA.fraction with requested frac:",som$max.na.frac,"->",max.na.frac))
   }
   if (!quiet) { 
@@ -80,7 +80,7 @@ kohparse<-function(som,data,train.var.expr,data.missing=NA,data.threshold=c(-Inf
   return=som
 }#}}}
 
-generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,...) { #{{{
+generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,quiet=FALSE,...) { #{{{
   # The function generates SOM groupings based on the unit classifications
   # returned from the SOM training. If new.data is specified, this data is 
   # used to generate new unit classifications (additional options to kohparse 
@@ -88,7 +88,7 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,..
 
   #Check if we're analysing a different dataset
   if (!missing(new.data)) { 
-    som<-kohparse(som=som,data=new.data,...)
+    som<-kohparse(som=som,data=new.data,quiet=quiet,...)
   }
 
   #Do we want a subset of the data? 
@@ -164,17 +164,17 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,..
   return=som
 }#}}}
 
-generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.bins,quiet=F,...) { #{{{
+generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.bins,quiet=FALSE,...) { #{{{
   
   if (missing(n.cluster.bins)) { 
     #If missing, read the n.cluster.bins
-    group.max<-som$n.cluster.bins
-    if (is.null(group.max)) { 
-      group.max<-prod(som$grid$xdim,som$grid$ydim)
+    n.cluster.bins<-som$n.cluster.bins
+    if (is.null(n.cluster.bins)) { 
+      n.cluster.bins<-prod(som$grid$xdim,som$grid$ydim)
     }
   }
   #Check that the group number is finite
-  if (!is.finite(group.max)) { 
+  if (!is.finite(n.cluster.bins)) { 
     stop("The SOM has non-finite n.cluster.bins?!")
   }
   #convert the expression(s) to a single command
@@ -182,20 +182,20 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
     expression<-paste0('c(',paste(expression,collapse=','),')')
   }
   #Setup the vector of groups 
-  factors<-seq(group.max)
+  factors<-seq(n.cluster.bins)
   #Check that the SOM has the correct classifications
   if (nrow(data)!=length(som$unit.classif)) { 
     if (!quiet) { 
       cat("Data length is not equal to SOM unit classifications. Regenerating groups!\n") 
     }
     #Rerun the parse and grouping
-    som<-generate.kohgroups(som=som,new.data=data,n.cluster.bins=group.max,quiet=quiet,...)
-  } else if (group.max!=som$n.cluster.bins) { 
+    som<-generate.kohgroups(som=som,new.data=data,n.cluster.bins=n.cluster.bins,quiet=quiet,...)
+  } else if (n.cluster.bins!=som$n.cluster.bins) { 
     if (!quiet) { 
       cat("Requested n.cluster.bins is different to SOM n.cluster.bins. Regenerating groups!\n") 
     }
     #Rerun the grouping
-    som<-generate.kohgroups(som=som,n.cluster.bins=group.max,quiet=quiet,...)
+    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,quiet=quiet,...)
   }
   #Prepare the SOM groupings
   som.group<-som$unit.classif
@@ -228,7 +228,7 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
     return=frame.tmp
   }
   #Check for parallel errors {{{ 
-  if (nrow(property)!=group.max) { 
+  if (nrow(property)!=n.cluster.bins) { 
     stop("Error in parallelisation: Try Rerunning in serial!")
   } 
   return=list(property=property,som=som)
