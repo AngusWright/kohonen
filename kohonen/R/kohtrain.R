@@ -168,7 +168,7 @@ kohtrain<-function(data,train.expr,
   #}}}
 }
 
-kohwhiten<-function(data,train.expr,data.missing,data.threshold) {
+kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
   #Check for character columns /*fold*/ {{{
   seperated.labels<-unique((vecsplit(gsub('[-+*\\/\\)\\(]'," ",train.expr),' ')))
   seperated.labels<-seperated.labels[which(seperated.labels!="")]
@@ -187,10 +187,21 @@ kohwhiten<-function(data,train.expr,data.missing,data.threshold) {
   #Prepare the whitened data matrix /*fold*/ {{{
   data.white<-matrix(NA,nrow=nrow(data),ncol=length(train.expr))
   #/*fend*/}}}
-  #Prepare the whitening parameters {{{
-  whiten.param<-matrix(NA,nrow=2,ncol=length(train.expr))
-  colnames(whiten.param)<-train.expr
-  #}}}
+  if (missing(whiten.param)) { 
+    #Prepare the whitening parameters {{{
+    whiten.param<-matrix(NA,nrow=2,ncol=length(train.expr))
+    colnames(whiten.param)<-train.expr
+    #}}}
+  } else if (any(colnames(whiten.param)!=train.expr)) { 
+    if (ncol(whiten.param)==length(train.expr)) { 
+      warning(paste0("Whitening parameter names do not match training expressions!\n",
+                     "They are the same length, so we are assuming that they match 1:1!\n"))
+      colnames(whiten.param)<-train.expr
+    } else { 
+      stop(paste0("Whitening parameter names do not match training expressions!\n",
+                  "They are not the same length, so we cannot continue!\n"))
+    }
+  }
   #Assign names {{{
   colnames(data.white)<-train.expr
   #}}}
@@ -220,8 +231,13 @@ kohwhiten<-function(data,train.expr,data.missing,data.threshold) {
     white.value[data.beyond.thresh]<-NA
 
     #Calculate the detected median and mad
-    med.tmp<-median(white.value,na.rm=T)
-    mad.tmp<-mad(white.value,na.rm=T)
+    if (!missing(whiten.param)) {
+      med.tmp<-whiten.param[1,factor.expr]
+      mad.tmp<-whiten.param[2,factor.expr]
+    } else { 
+      med.tmp<-median(white.value,na.rm=T)
+      mad.tmp<-mad(white.value,na.rm=T)
+    }
     #Whiten the data
     white.value<-(white.value-med.tmp)/mad.tmp
     #Save the whitening parameters 

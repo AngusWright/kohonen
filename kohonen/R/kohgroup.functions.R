@@ -20,7 +20,8 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
     warning(paste("Assuming provided train.expr entries map directly onto the training labels!\n"))
   }
   #Scale the data for use in the SOM
-  kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,data.missing=data.missing,data.threshold=data.threshold)
+  kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,whiten.param=som$whiten.param,
+                              data.missing=data.missing,data.threshold=data.threshold)
   data.white<-kohwhiten.output$data.white
   whiten.param<-kohwhiten.output$whiten.param
   #check the max NA fraction parameter 
