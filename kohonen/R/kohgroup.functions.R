@@ -11,7 +11,7 @@ kohparse<-function(som,data,train.var.expr,data.missing=NA,data.threshold=c(-Inf
       cat("Loading factor names from SOM\n")
     }
     train.var.expr<-colnames(som$codes[[1]])
-  } else { 
+  } else if (any(train.var.expr!=colnames(som$codes[[1]]))) { 
     cat(paste("Assuming provided train.var.expr entries map directly onto the training labels!\n",
             'i.e.\n',paste(collapse=' ',train.var.expr[1:min(length(train.var.expr),3)]),
             '\n         are the equivalent of \n',

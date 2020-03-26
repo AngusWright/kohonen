@@ -39,7 +39,7 @@ kohtrain<-function(data,train.expr,
     short.timer<-proc.time()[3]
   }#/*fend*/}}}
   #Whiten the input data {{{
-  kohwhiten.output<-kohwhiten(data,train.expr,data.missing=data.missing,data.threshold=data.threshold)
+  kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,data.missing=data.missing,data.threshold=data.threshold)
   data.white<-kohwhiten.output$data.white
   whiten.param<-kohwhiten.output$whiten.param
   #}}}
