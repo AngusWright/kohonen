@@ -179,13 +179,31 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
                          heatkeywidth, shape = c("round", "straight"),
                          border = "black", zlog=FALSE, whatmap, ...)
 {
-  if (is.null(main)) main <- "Property plot"
   if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
     BlRd<-colorRampPalette(rev(RColorBrewer::brewer.pal(11,"RdBu")))
     palette.name <- BlRd
   } else if (is.null(palette.name)) { 
     palette.name <- terrain.colors
   }
+
+  if (length(property)==1) { 
+    whatmap <- check.whatmap(x, whatmap)
+    if (is.null(main) || !(is.expression(main) || main != "")) {
+      main<-colnames(getCodes(x,whatmap))[property]
+    }
+    property<-getCodes(x, whatmap)[,property]
+  } else if (length(x$n.cluster.bins)!=0 && length(property)==x$n.cluster.bins) { 
+    if (x$n.cluster.bins!=nrow(x$grid$pts)) { 
+      if (is.null(x$cell.clust)) { 
+        stop("SOM cells are clustered, but the cell-to-cluster assignment is missing?!")
+      }
+      property<-property[x$cell.clust]
+    }
+  } else if (length(property)!=nrow(x$grid$pts)) { 
+    stop("Input property has length!=Ncells or Nclust") 
+  }
+
+  if (is.null(main)) main <- "Property plot"
 
   margins <- rep(0.6, 4)
   if (heatkey) margins[2] <- margins[2] + 4
@@ -195,14 +213,6 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     on.exit(par(mar = opar))
   }
   par(mar = margins)
-
-  if (length(property)==1) { 
-    whatmap <- check.whatmap(x, whatmap)
-    property<-getCodes(x, whatmap)[,property]
-    if (!(is.expression(main) || main != "")) {
-      main<-colnames(getCodes(x,whatmap))[property]
-    }
-  }
 
   summary(x$grid)
   plot(x$grid, ...)
@@ -233,7 +243,7 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     ncolors <- min(length(unique(property[!is.na(property)])), 20)
   } else if (ncolors > length(unique(property[!is.na(property)]))) {
     ncolors <- floor(length(unique(property[!is.na(property)]))/2)
-    print(ncolors)
+    #print(ncolors)
   }
   bgcol <- palette.name(ncolors)
 
@@ -371,7 +381,7 @@ plot.kohchanges <- function(x, main, keepMargins, ...)
 
 plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
                            zlim, heatkey, keepMargins, heatkeywidth,
-                           shape, border, zlog, ...)
+                           shape, border, zlog, clust=TRUE, ...)
 {
   if (zlog) { 
     if (is.null(main)) main <- "log(Counts) plot"
@@ -386,7 +396,9 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
   }
 
 
-  if (is.null(classif) & !is.null(x$unit.classif)) {
+  if (is.null(classif) & clust & !is.null(x$clust.classif)) {
+    classif <- x$clust.classif
+  } else if (is.null(classif) & !is.null(x$unit.classif)) {
     classif <- x$unit.classif
   } else {
     if (is.list(classif) && !is.null(classif$unit.classif))
@@ -397,7 +409,13 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
 
   counts <- rep(NA, nrow(x$grid$pts))
   huhn <- table(classif)
-  counts[as.integer(names(huhn))] <- huhn
+  if (clust & !is.null(x$cell.clust)) { 
+    clust.counts <- rep(NA, x$n.cluster.bins)
+    clust.counts[as.integer(names(huhn))] <- huhn
+    counts <- clust.counts[x$cell.clust]
+  } else { 
+    counts[as.integer(names(huhn))] <- huhn
+  }
 
   if (max(counts, na.rm = TRUE) < 10) {
     countsp <- factor(counts)

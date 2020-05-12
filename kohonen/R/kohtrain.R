@@ -9,7 +9,7 @@ kohtrain<-function(data,train.expr,
                    som.rate=c(0.05,0.01),n.cores=1,som.method='pbatch',max.na.frac=1,
                    train.sparse=FALSE,sparse.frac=0.1,sparse.min.density=3,sparse.var,
                    data.missing=NA,data.threshold=c(-Inf,Inf),
-                   quiet=FALSE) {
+                   quiet=FALSE,seed) {
   #Function trains a SOM from input data. Performs a number of 
   #preparatory steps beforehand. 
 
@@ -30,6 +30,11 @@ kohtrain<-function(data,train.expr,
   }
   if (any(!is.finite(som.dim)|som.dim<=0)){ 
     stop("som.dim values must be finite & > 0")
+  }
+  #}}}
+  #Seed {{{ 
+  if (!missing(seed)) { 
+    set.seed(seed)
   }
   #}}}
   #}}}
@@ -186,6 +191,7 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
   #/*fend*/}}}
   #Prepare the whitened data matrix /*fold*/ {{{
   data.white<-matrix(NA,nrow=nrow(data),ncol=length(train.expr))
+  colnames(data.white)<-train.expr
   #/*fend*/}}}
   if (missing(whiten.param)) { 
     #Prepare the whitening parameters {{{
@@ -193,6 +199,7 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
     colnames(whiten.param)<-train.expr
     #}}}
   } else if (any(colnames(whiten.param)!=train.expr)) { 
+    #Check that the whiten parameters match the training parameters {{{
     if (ncol(whiten.param)==length(train.expr)) { 
       warning(paste0("Whitening parameter names do not match training expressions!\n",
                      "They are the same length, so we are assuming that they match 1:1!\n"))
@@ -201,10 +208,8 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
       stop(paste0("Whitening parameter names do not match training expressions!\n",
                   "They are not the same length, so we cannot continue!\n"))
     }
+    #}}}
   }
-  #Assign names {{{
-  colnames(data.white)<-train.expr
-  #}}}
   #Loop through the factor expressions (they could be columns or expressions!)/*fold*/ {{{
   for (factor.expr in train.expr) { 
     #Calculate the expression result
@@ -231,7 +236,7 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
     white.value[data.beyond.thresh]<-NA
 
     #Calculate the detected median and mad
-    if (!missing(whiten.param)) {
+    if (!is.na(whiten.param[1,factor.expr])) {
       med.tmp<-whiten.param[1,factor.expr]
       mad.tmp<-whiten.param[2,factor.expr]
     } else { 

@@ -24,11 +24,21 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
                               data.missing=data.missing,data.threshold=data.threshold)
   data.white<-kohwhiten.output$data.white
   whiten.param<-kohwhiten.output$whiten.param
+  #Check for any data rows with fully NA data
+  bad.data<-rowAlls(is.na(data.white))
+  if (any(bad.data)) { 
+    warning("There are fully NA rows in the whitened data!")
+  }
+  if (any(is.na(bad.data))) { 
+    stop("there are NA's in the bad data check")
+  }
   #check the max NA fraction parameter 
   if (length(som$maxNA.fraction)==0) { 
     warning(paste("SOM has no maxNA.fraction parameter! Using requested frac:",max.na.frac))
+    som$maxNA.fraction<-max.na.frac
   } else if (som$maxNA.fraction != max.na.frac) { 
-    warning(paste("Overwriting SOM maxNA.fraction with requested frac:",som$max.na.frac,"->",max.na.frac))
+    warning(paste("Overwriting SOM maxNA.fraction with requested frac:",som$maxNA.fraction,"->",max.na.frac))
+    som$maxNA.fraction<-max.na.frac
   }
   if (!quiet) { 
     #close the progress bar and prompt
@@ -52,16 +62,23 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
     if (length(som$training.classif)==0) { 
       som$training.classif<-som$unit.classif
     }
-    som$unit.classif <-
-     foreach(d=isplitRows(data.white, chunks=num_splits),
+    som$unit.classif<-rep(NA,nrow(data.white))
+    good.unit.classif <-
+     foreach(d=isplitRows(data.white[!bad.data,], chunks=num_splits),
      .combine=c, .packages=c("stats")) %dopar% {
         return=predict(som, newdata=d)$unit.classif
     }
+    #Check that the parse worked 
+    if (length(good.unit.classif)!=length(which(!bad.data))) {
+      stop("Parse failed to predict entries for all good data")
+    }
+    som$unit.classif[which(!bad.data)]<-good.unit.classif
   } else { 
     #Run the data prediction in serial 
-    pred.som<-predict(som,newdata=data.white)
+    pred.som<-predict(som,newdata=data.white[!bad.data,])
     som$training.classif<-som$unit.classif
-    som$unit.classif<-pred.som$unit.classif
+    som$unit.classif<-rep(NA,nrow(data.white))
+    som$unit.classif[which(!bad.data)]<-pred.som$unit.classif
   } 
   #Check that the parse worked 
   if (length(som$unit.classif)!=nrow(data.white)) {
@@ -89,7 +106,7 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
 
   #Check if we're analysing a different dataset
   if (!missing(new.data)) { 
-    som<-kohparse(som=som,data=new.data,quiet=quiet,...)
+    som<-kohparse(som=som,data=new.data,quiet=quiet,n.cores=n.cores,...)
   }
 
   #Do we want a subset of the data? 
@@ -190,16 +207,22 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
       cat("Data length is not equal to SOM unit classifications. Regenerating groups!\n") 
     }
     #Rerun the parse and grouping
-    som<-generate.kohgroups(som=som,new.data=data,n.cluster.bins=n.cluster.bins,quiet=quiet,...)
+    som<-generate.kohgroups(som=som,new.data=data,n.cluster.bins=n.cluster.bins,quiet=quiet,n.cores=n.cores,...)
+  } else if (nrow(data)!=length(som$clust.classif)) { 
+    if (!quiet) { 
+      cat("Data length is not equal to SOM cluster classifications. Regenerating groups!\n") 
+    }
+    #Rerun the grouping
+    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,quiet=quiet,n.cores=n.cores,...)
   } else if (n.cluster.bins!=som$n.cluster.bins) { 
     if (!quiet) { 
       cat("Requested n.cluster.bins is different to SOM n.cluster.bins. Regenerating groups!\n") 
     }
     #Rerun the grouping
-    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,quiet=quiet,...)
+    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,quiet=quiet,n.cores=n.cores,...)
   }
   #Prepare the SOM groupings
-  som.group<-som$unit.classif
+  som.group<-som$clust.classif
   
   #Prepare the expression per-group 
   expression<-gsub("data","data.tmp",expression)
