@@ -1,5 +1,5 @@
 
-kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf),quiet=FALSE,n.cores=1,max.na.frac=1) { #{{{
+kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf),quiet=FALSE,n.cores=1,max.na.frac) { #{{{
   #Starting Prompt
   if (!quiet) { 
     timer<-proc.time()[3]
@@ -33,12 +33,20 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
     stop("there are NA's in the bad data check")
   }
   #check the max NA fraction parameter 
-  if (length(som$maxNA.fraction)==0) { 
-    warning(paste("SOM has no maxNA.fraction parameter! Using requested frac:",max.na.frac))
-    som$maxNA.fraction<-max.na.frac
-  } else if (som$maxNA.fraction != max.na.frac) { 
-    warning(paste("Overwriting SOM maxNA.fraction with requested frac:",som$maxNA.fraction,"->",max.na.frac))
-    som$maxNA.fraction<-max.na.frac
+  if (!missing(max.na.frac)) { 
+    if (length(som$maxNA.fraction)==0 & !missing(max.na.frac)) { 
+      warning(paste("SOM has no maxNA.fraction parameter! Using requested frac:",max.na.frac))
+      som$maxNA.fraction<-max.na.frac
+    } else if (length(som$maxNA.fraction)==0 & missing(max.na.frac)) { 
+      stop(paste("SOM has no maxNA.fraction parameter, and there isn't one specified! Please specify a value for max.na.frac!"))
+    } else if (som$maxNA.fraction != max.na.frac) { 
+      warning(paste("Overwriting SOM maxNA.fraction with requested frac:",som$maxNA.fraction,"->",max.na.frac))
+      som$maxNA.fraction<-max.na.frac
+    }
+  }
+  bad.data<-rowSums(ifelse(is.na(data.white),1,0))/ncol(data.white) > som$maxNA.fraction
+  if (any(bad.data)) { 
+    warning("There are fully NA rows in the whitened data!")
   }
   if (!quiet) { 
     #close the progress bar and prompt
@@ -111,7 +119,8 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
 
   #Do we want a subset of the data? 
   if (missing(subset)) { 
-    somcells<-somclust<-som$unit.classif
+    subset<-which(is.finite(som$unit.classif))
+    somcells<-somclust<-som$unit.classif[subset]
   } else { 
     #If needed, convert subset from logical
     if (class(subset)=="logical") {
@@ -169,11 +178,11 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
     som.hc<-NULL
   }
   #If using a subset, reconstruct the full unit.classif
-  if (!missing(subset)) { 
+  #if (!missing(subset)) { 
     somclust.full<-rep(NA,length(som$unit.classif))
     somclust.full[subset]<-somclust
     somclust<-somclust.full
-  } 
+  #} 
   #Update the SOM structure
   som$clust.classif<-somclust
   som$n.cluster.bins<-n.cluster.bins
@@ -256,6 +265,86 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
     stop("Error in parallelisation: Try Rerunning in serial!")
   } 
   return=list(property=property,som=som)
+  #}}}
+}#}}}
+
+kohgroup.loop<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.bins,quiet=FALSE,...) { #{{{
+  
+  if (missing(n.cluster.bins)) { 
+    #If missing, read the n.cluster.bins
+    n.cluster.bins<-som$n.cluster.bins
+    if (is.null(n.cluster.bins)) { 
+      n.cluster.bins<-prod(som$grid$xdim,som$grid$ydim)
+    }
+  }
+  #Check that the group number is finite
+  if (!is.finite(n.cluster.bins)) { 
+    stop("The SOM has non-finite n.cluster.bins?!")
+  }
+  #convert the expression(s) to a single command
+  if (length(expression)>1) { 
+    expression<-paste0('cbind(',paste(expression,collapse=','),')')
+  }
+  #Setup the vector of groups 
+  factors<-seq(n.cluster.bins)
+  #Check that the SOM has the correct classifications
+  if (nrow(data)!=length(som$unit.classif)) { 
+    if (!quiet) { 
+      cat("Data length is not equal to SOM unit classifications. Regenerating groups!\n") 
+    }
+    #Rerun the parse and grouping
+    som<-generate.kohgroups(som=som,new.data=data,n.cluster.bins=n.cluster.bins,quiet=quiet,n.cores=n.cores,...)
+  } else if (nrow(data)!=length(som$clust.classif)) { 
+    if (!quiet) { 
+      cat("Data length is not equal to SOM cluster classifications. Regenerating groups!\n") 
+    }
+    #Rerun the grouping
+    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,quiet=quiet,n.cores=n.cores,...)
+  } else if (n.cluster.bins!=som$n.cluster.bins) { 
+    if (!quiet) { 
+      cat("Requested n.cluster.bins is different to SOM n.cluster.bins. Regenerating groups!\n") 
+    }
+    #Rerun the grouping
+    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,quiet=quiet,n.cores=n.cores,...)
+  }
+  #Prepare the SOM groupings
+  som.group<-som$clust.classif
+  
+  #Prepare the expression per-group 
+  expression<-gsub("data","data.tmp",expression)
+  expression<-gsub("full.data.tmp","data",expression)
+  #Prepare the parallelisation
+  registerDoParallel(cores=n.cores)
+  #Run the expression per group
+  values<-foreach(i=factors,.combine=rbind,
+                 .export=c('som.group','expression','data'),
+                 .inorder=TRUE)%dopar%{
+    group.index<-which(som.group==i)
+    data.tmp<-data[group.index,]
+    #evaluate the expression
+    vals<-eval(parse(text=expression)) 
+    #Return the expression result(s)
+    frame.tmp<-data.frame(index=group.index,vals)
+    #Prepare the expression label(s)
+    if (length(expr.label)==0) { 
+      colnames(frame.tmp)<-c("source.id",paste0("value.",ncol(frame.tmp)-1))
+    } else { 
+      if (is.null(dim(vals)) && length(vals)!=length(group.index)) { 
+        stop(paste0("The expression returned more/less values than there are expression labels!\n",
+                    paste(expr.label,collapse=' : '),"\n",length(vals)))
+      } else if (nrow(vals)!=length(group.index)) { 
+        stop(paste0("The expression returned more/less values than there are expression labels!\n",
+                    paste(expr.label,collapse=' : '),"\n",length(vals)))
+      }
+      colnames(frame.tmp)<-c("group.id",expr.label)
+    }
+    return=frame.tmp
+  }
+  #Check for parallel errors {{{ 
+  if (nrow(values)!=length(which(is.finite(som.group)))) { 
+    stop("Error in parallelisation: Try Rerunning in serial!")
+  } 
+  return=list(values=values,som=som)
   #}}}
 }#}}}
 
