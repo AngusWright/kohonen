@@ -191,7 +191,7 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
   return=som
 }#}}}
 
-generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.bins,quiet=FALSE,...) { #{{{
+generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.bins,subset,quiet=FALSE,...) { #{{{
   
   if (missing(n.cluster.bins)) { 
     #If missing, read the n.cluster.bins
@@ -202,7 +202,7 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
   }
   #Check that the group number is finite
   if (!is.finite(n.cluster.bins)) { 
-    stop("The SOM has non-finite n.cluster.bins?!")
+    stop("The SOM has non-finite n.cluster.bins?! (If you wanted max bins, set to NULL)")
   }
   #convert the expression(s) to a single command
   if (length(expression)>1) { 
@@ -216,22 +216,32 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
       cat("Data length is not equal to SOM unit classifications. Regenerating groups!\n") 
     }
     #Rerun the parse and grouping
-    som<-generate.kohgroups(som=som,new.data=data,n.cluster.bins=n.cluster.bins,quiet=quiet,n.cores=n.cores,...)
+    som<-generate.kohgroups(som=som,new.data=data,n.cluster.bins=n.cluster.bins,subset=subset,
+                            quiet=quiet,n.cores=n.cores,...)
   } else if (nrow(data)!=length(som$clust.classif)) { 
     if (!quiet) { 
       cat("Data length is not equal to SOM cluster classifications. Regenerating groups!\n") 
     }
     #Rerun the grouping
-    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,quiet=quiet,n.cores=n.cores,...)
+    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,subset=subset,
+                            quiet=quiet,n.cores=n.cores,...)
   } else if (n.cluster.bins!=som$n.cluster.bins) { 
     if (!quiet) { 
       cat("Requested n.cluster.bins is different to SOM n.cluster.bins. Regenerating groups!\n") 
     }
     #Rerun the grouping
-    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,quiet=quiet,n.cores=n.cores,...)
+    som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,subset=subset,
+                            quiet=quiet,n.cores=n.cores,...)
   }
   #Prepare the SOM groupings
   som.group<-som$clust.classif
+  if (!missing(subset)) { 
+    if (is.logical(subset)) { 
+      som.group[!subset]<-NA
+    } else { 
+      som.group[!(1:length(som.group))%in%subset]<-NA
+    }
+  }
   
   #Prepare the expression per-group 
   expression<-gsub("data","data.tmp",expression)
