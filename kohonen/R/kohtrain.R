@@ -182,10 +182,19 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
     seperated.labels<-seperated.labels[-func.ind]
     if (!quiet) { cat(" (removed functions from checks)") }
   }
-  if (any(sapply(data[,seperated.labels,with=F],class)=='character')) { 
-    if (!quiet) { cat(" (converting character cols to numeric!)") }
-    for (i in sperated.labels[which(sapply(data[1,seperated.labels,with=F],class)=='character')]) { 
-      data[,i,with=F]<-as.numeric(data[,i,with=F])
+  if (any(class(data)=='data-table')) { 
+    if (any(sapply(data[,seperated.labels,with=F],class)=='character')) { 
+      if (!quiet) { cat(" (converting character cols to numeric!)") }
+      for (i in sperated.labels[which(sapply(data[1,seperated.labels,with=F],class)=='character')]) { 
+        data[,i,with=F]<-as.numeric(data[,i,with=F])
+      }
+    }
+  } else { 
+    if (any(sapply(data[,seperated.labels],class)=='character')) { 
+      if (!quiet) { cat(" (converting character cols to numeric!)") }
+      for (i in sperated.labels[which(sapply(data[1,seperated.labels],class)=='character')]) { 
+        data[,i]<-as.numeric(data[,i])
+      }
     }
   }
   #/*fend*/}}}
@@ -222,17 +231,17 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
       seperated.labels<-seperated.labels[-func.ind]
     }
     #Start with everything being OK, and then...
-    data.beyond.thresh<-data.missing<-rep(FALSE,nrow(data))
+    data.beyond.thresh<-data.is.missing<-rep(FALSE,nrow(data))
     #...Loop through the components 
     for (label in seperated.labels) { 
       #Get the detected and non detected sources
-      data.missing<-data.missing | (data[[label]]==data.missing)
+      data.is.missing<-data.is.missing | (data[[label]]==data.missing)
       data.beyond.thresh<-data.beyond.thresh | 
         ((data[[label]]>max(data.threshold) | data[[label]]<min(data.threshold)) & 
-          !data.missing)
+          !data.is.missing)
     }
     #Set the values with missing parts to dummy values 
-    white.value[data.missing]<-NA
+    white.value[data.is.missing]<-NA
     white.value[data.beyond.thresh]<-NA
 
     #Calculate the detected median and mad

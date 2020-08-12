@@ -439,7 +439,7 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
 
 plot.kohUmatrix <- function(x, classif, main, palette.name,
                             ncolors, zlim, heatkey, keepMargins,
-                            heatkeywidth, shape, border,zlog=FALSE, ...)
+                            heatkeywidth, shape, border,zlog=TRUE, ...)
 {
   if (is.null(main)) main <- "Neighbour distance plot"
   if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
@@ -488,8 +488,8 @@ plot.kohquality <- function(x, classif, main, palette.name, ncolors,
     if (is.list(classif) &&
         !is.null(classif$unit.classif) &&
         !is.null(classif$distances)) {
-      classif <- classif$unit.classif
       distances <- classif$distances
+      classif <- classif$unit.classif
     }
   }
   if (is.null(distances))

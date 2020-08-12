@@ -147,25 +147,26 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
       som.hc = cutree(tree=som$hclust, k=n.cluster.bins)
       #Do we have data to group?
       if (length(somclust)!=0) {
-        #Group the data in parallel
-        registerDoParallel(cores=n.cores)
-        somind<-foreach(i=seq(n.cluster.bins),.combine=rbind,
-                        .export=c("somcells","som.hc"),.inorder=FALSE)%dopar%{ 
-          #Assign the data to the cluster if it's SOMcell belongs to the cluster
-          ind<-which(somcells%in%which(som.hc==i))
-          return=cbind(ind,rep(i,length(ind)))
-        } 
-        if (length(somind)==0 || nrow(somind)!=length(somcells)) { 
-          cat("Error in parallelisation! Must rerun in serial.")
-          somind<-matrix(NA,ncol=2,nrow=length(somcells)) 
-          for(i in seq(n.cluster.bins)){ 
-            #Assign the data to the cluster if it's SOMcell belongs to the cluster
-            ind<-which(somcells%in%which(som.hc==i))
-            somind[ind,]<-cbind(ind,rep(i,length(ind)))
-          } 
-        }
-        #Update the SOMclust vector
-        somclust[somind[,1]]<-somind[,2]
+        ##Group the data in parallel
+        #registerDoParallel(cores=n.cores)
+        #somind<-foreach(i=seq(n.cluster.bins),.combine=rbind,
+        #                .export=c("somcells","som.hc"),.inorder=FALSE)%dopar%{ 
+        #  #Assign the data to the cluster if it's SOMcell belongs to the cluster
+        #  ind<-which(somcells%in%which(som.hc==i))
+        #  return=cbind(ind,rep(i,length(ind)))
+        #} 
+        #if (length(somind)==0 || nrow(somind)!=length(somcells)) { 
+        #  cat("Error in parallelisation! Must rerun in serial.")
+        #  somind<-matrix(NA,ncol=2,nrow=length(somcells)) 
+        #  for(i in seq(n.cluster.bins)){ 
+        #    #Assign the data to the cluster if it's SOMcell belongs to the cluster
+        #    ind<-which(somcells%in%which(som.hc==i))
+        #    somind[ind,]<-cbind(ind,rep(i,length(ind)))
+        #  } 
+        #}
+        ##Update the SOMclust vector
+        #somclust[somind[,1]]<-somind[,2]
+        somclust<-unsplit(som.hc,factor(somcells,levels=seq(prod(som.dim))),drop=FALSE)
       }
     } else { 
       #All cells are a cluster
@@ -196,9 +197,9 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
   if (missing(n.cluster.bins)) { 
     #If missing, read the n.cluster.bins
     n.cluster.bins<-som$n.cluster.bins
-    if (is.null(n.cluster.bins)) { 
-      n.cluster.bins<-prod(som$grid$xdim,som$grid$ydim)
-    }
+  }
+  if (is.null(n.cluster.bins)) { 
+    n.cluster.bins<-prod(som$grid$xdim,som$grid$ydim)
   }
   #Check that the group number is finite
   if (!is.finite(n.cluster.bins)) { 

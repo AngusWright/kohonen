@@ -4,7 +4,7 @@ export("som","xyf", "supersom", "expandMap", "somgrid",
        "object.distances", "unit.distances",
        "getCodes", "check.whatmap", "tricolor",
        "generate.kohgroups","generate.kohgroup.property",
-       "kohparse","kohtrain","kohgroup.loop")
+       "kohparse","kohtrain","kohgroup.loop","kohwhiten")
 
 S3method(print, kohonen)
 S3method(plot, kohonen)
