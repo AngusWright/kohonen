@@ -45,7 +45,7 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
     }
   }
   bad.data<-rowSums(ifelse(is.na(data.white),1,0))/ncol(data.white) > som$maxNA.fraction
-  if (any(bad.data)) { 
+  if (any(bad.data) & som$maxNA.fraction==1) { 
     warning("There are fully NA rows in the whitened data!")
   }
   if (!quiet) { 
@@ -55,7 +55,7 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
   #Setup the number of processes
   if (n.cores<1) {
     num_splits<-try(as.numeric(system("grep -c ^processor /proc/cpuinfo",intern=T)))
-    if (length(num_splits)==0||!is.finite(num_splits)) { 
+    if (class(num_splits)!='try-error' || length(num_splits)==0 || !is.finite(num_splits)) { 
       cat("core number lookup failed. Running in serial!\n")
       warning("core number lookup failed. Running in serial!")
       num_splits<-1
@@ -63,30 +63,38 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
   } else { 
     num_splits<-n.cores
   }
-  if (class(num_splits)!='try-error') { 
+  if (num_splits > 1) { 
     #Run the data prediction in parallel
     registerDoParallel(cores=num_splits)
     #Save the training classification
     if (length(som$training.classif)==0) { 
       som$training.classif<-som$unit.classif
+      som$training.distances<-som$distances
     }
     som$unit.classif<-rep(NA,nrow(data.white))
+    som$distances<-rep(NA,nrow(data.white))
     good.unit.classif <-
      foreach(d=isplitRows(data.white[!bad.data,], chunks=num_splits),
-     .combine=c, .packages=c("stats")) %dopar% {
-        return=predict(som, newdata=d)$unit.classif
+     .combine=rbind, .packages=c("stats")) %dopar% {
+        pred<-predict(som, newdata=d)
+        return=cbind(unit.classif=pred$unit.classif,distances=pred$distances)
     }
     #Check that the parse worked 
-    if (length(good.unit.classif)!=length(which(!bad.data))) {
+    if (nrow(good.unit.classif)!=length(which(!bad.data))) {
       stop("Parse failed to predict entries for all good data")
     }
-    som$unit.classif[which(!bad.data)]<-good.unit.classif
+    som$unit.classif[which(!bad.data)]<-good.unit.classif[,1]
+    som$distances[which(!bad.data)]<-good.unit.classif[,2]
   } else { 
     #Run the data prediction in serial 
     pred.som<-predict(som,newdata=data.white[!bad.data,])
-    som$training.classif<-som$unit.classif
-    som$unit.classif<-rep(NA,nrow(data.white))
+    if (is.null(som$training.classif)) { 
+      som$training.classif<-som$unit.classif
+      som$training.distances<-som$distances
+    }
+    som$distances<-som$unit.classif<-rep(NA,nrow(data.white))
     som$unit.classif[which(!bad.data)]<-pred.som$unit.classif
+    som$distances[which(!bad.data)]<-pred.som$distances
   } 
   #Check that the parse worked 
   if (length(som$unit.classif)!=nrow(data.white)) {
@@ -96,6 +104,8 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
     #Prompt
     cat("Ending\n")
   }
+  #Save the data 
+  som$data[[1]]<-data.white
   #Add a vector for training rows all good data
   som$good.phot<-rowAlls(!is.na(data.white))
   if (!quiet) { 
@@ -247,30 +257,44 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
   #Prepare the expression per-group 
   expression<-gsub("data","data.tmp",expression)
   expression<-gsub("full.data.tmp","data",expression)
-  #Prepare the parallelisation
-  registerDoParallel(cores=n.cores)
-  #Run the expression per group
-  property<-foreach(i=factors,.combine=rbind,
-                 .export=c('som.group','expression','data'),
-                 .inorder=TRUE)%dopar%{
-    group.index<-which(som.group==i)
-    data.tmp<-data[group.index,]
-    #evaluate the expression
-    val<-eval(parse(text=expression)) 
-    #Return the expression result(s)
-    frame.tmp<-data.frame(group.id=i,rbind(val))
-    #Prepare the expression label(s)
-    if (length(expr.label)==0) { 
-      colnames(frame.tmp)<-c("group.id",paste0("value.",seq(length(val))))
-    } else { 
-      if (length(val)!=length(expr.label)) { 
-        stop(paste0("The expression returned more/less values than there are expression labels!\n",
-                    paste(expr.label,collapse=' : '),"\n",length(val)))
-      }
-      colnames(frame.tmp)<-c("group.id",expr.label)
-    }
-    return=frame.tmp
+  ##Prepare the parallelisation
+  #registerDoParallel(cores=n.cores)
+  ##Run the expression per group
+  #property<-foreach(i=factors,.combine=rbind,
+  #               .export=c('som.group','expression','data'),
+  #               .inorder=TRUE)%dopar%{
+  #  group.index<-which(som.group==i)
+  #  data.tmp<-data[group.index,]
+  #  #evaluate the expression
+  #  val<-eval(parse(text=expression)) 
+  #  #Return the expression result(s)
+  #  frame.tmp<-data.frame(group.id=i,rbind(val))
+  #  #Prepare the expression label(s)
+  #  if (length(expr.label)==0) { 
+  #    colnames(frame.tmp)<-c("group.id",paste0("value.",seq(length(val))))
+  #  } else { 
+  #    if (length(val)!=length(expr.label)) { 
+  #      stop(paste0("The expression returned more/less values than there are expression labels!\n",
+  #                  paste(expr.label,collapse=' : '),"\n",length(val)))
+  #    }
+  #    colnames(frame.tmp)<-c("group.id",expr.label)
+  #  }
+  #  return=frame.tmp
+  #}
+  evalprop<-function(data.tmp) eval(parse(text=expression))
+  som.group.fact<-factor(som.group,levels=seq(n.cluster.bins))
+  property<-t(sapply(split(data,som.group.fact),evalprop))
+  if (ncol(property)==length(expr.label)) { 
+    colnames(property)<-expr.label
+  } else if (nrow(property)==length(expr.label)) { 
+    property<-t(property)
+    colnames(property)<-expr.label
+  } else { 
+    warning("The expression labels are not the same length as the expression outputs!!")
   }
+  #if (bycell & (nrow(som$grid$pts)!=n.cluster.bins)) { 
+  #  cellproperty<-unsplit(property,factor(som$cell.clust,levels=seq(nrow(som$grid$pts))))
+  #}
   #Check for parallel errors {{{ 
   if (nrow(property)!=n.cluster.bins) { 
     stop("Error in parallelisation: Try Rerunning in serial!")
@@ -326,36 +350,41 @@ kohgroup.loop<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.
   expression<-gsub("full.data.tmp","data",expression)
   #Prepare the parallelisation
   registerDoParallel(cores=n.cores)
-  #Run the expression per group
-  values<-foreach(i=factors,.combine=rbind,
-                 .export=c('som.group','expression','data'),
-                 .inorder=TRUE)%dopar%{
-    group.index<-which(som.group==i)
-    data.tmp<-data[group.index,]
-    #evaluate the expression
-    vals<-eval(parse(text=expression)) 
-    #Return the expression result(s)
-    frame.tmp<-data.frame(index=group.index,vals)
-    #Prepare the expression label(s)
-    if (length(expr.label)==0) { 
-      colnames(frame.tmp)<-c("source.id",paste0("value.",ncol(frame.tmp)-1))
-    } else { 
-      if (is.null(dim(vals)) && length(vals)!=length(group.index)) { 
-        stop(paste0("The expression returned more/less values than there are expression labels!\n",
-                    paste(expr.label,collapse=' : '),"\n",length(vals)))
-      } else if (nrow(vals)!=length(group.index)) { 
-        stop(paste0("The expression returned more/less values than there are expression labels!\n",
-                    paste(expr.label,collapse=' : '),"\n",length(vals)))
-      }
-      colnames(frame.tmp)<-c("group.id",expr.label)
-    }
-    return=frame.tmp
-  }
+  ##Run the expression per group
+  #values<-foreach(i=factors,.combine=rbind,
+  #               .export=c('som.group','expression','data'),
+  #               .inorder=TRUE)%dopar%{
+  #  group.index<-which(som.group==i)
+  #  data.tmp<-data[group.index,]
+  #  #evaluate the expression
+  #  vals<-eval(parse(text=expression)) 
+  #  #Return the expression result(s)
+  #  frame.tmp<-data.frame(index=group.index,vals)
+  #  #Prepare the expression label(s)
+  #  if (length(expr.label)==0) { 
+  #    colnames(frame.tmp)<-c("source.id",paste0("value.",ncol(frame.tmp)-1))
+  #  } else { 
+  #    if (is.null(dim(vals)) && length(vals)!=length(group.index)) { 
+  #      stop(paste0("The expression returned more/less values than there are expression labels!\n",
+  #                  paste(expr.label,collapse=' : '),"\n",length(vals)))
+  #    } else if (nrow(vals)!=length(group.index)) { 
+  #      stop(paste0("The expression returned more/less values than there are expression labels!\n",
+  #                  paste(expr.label,collapse=' : '),"\n",length(vals)))
+  #    }
+  #    colnames(frame.tmp)<-c("group.id",expr.label)
+  #  }
+  #  return=frame.tmp
+  #}
+  evalprop<-function(data.tmp) eval(parse(text=expression))
+  som.group.fact<-factor(som.group,levels=seq(n.cluster.bins))
+  property<-rep(NA,length(som.group))
+  if (length(evalprop(data[1:10,]))!=10) { stop("kohgroup.loop is only designed to return 1 expression at a time") }
+  split(property,som.group.fact)<-sapply(split(data,som.group.fact),evalprop)
   #Check for parallel errors {{{ 
-  if (nrow(values)!=length(which(is.finite(som.group)))) { 
-    stop("Error in parallelisation: Try Rerunning in serial!")
-  } 
-  return=list(values=values,som=som)
+  #if (nrow(values)!=length(which(is.finite(som.group)))) { 
+  #  stop("Error in parallelisation: Try Rerunning in serial!")
+  #} 
+  return=list(values=property,som=som)
   #}}}
 }#}}}
 

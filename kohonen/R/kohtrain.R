@@ -182,19 +182,13 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
     seperated.labels<-seperated.labels[-func.ind]
     if (!quiet) { cat(" (removed functions from checks)") }
   }
-  if (any(class(data)=='data-table')) { 
-    if (any(sapply(data[,seperated.labels,with=F],class)=='character')) { 
-      if (!quiet) { cat(" (converting character cols to numeric!)") }
-      for (i in sperated.labels[which(sapply(data[1,seperated.labels,with=F],class)=='character')]) { 
-        data[,i,with=F]<-as.numeric(data[,i,with=F])
-      }
-    }
-  } else { 
-    if (any(sapply(data[,seperated.labels],class)=='character')) { 
-      if (!quiet) { cat(" (converting character cols to numeric!)") }
-      for (i in sperated.labels[which(sapply(data[1,seperated.labels],class)=='character')]) { 
-        data[,i]<-as.numeric(data[,i])
-      }
+  if (!any(class(data)=='data-table')) { 
+    data<-as.data.table(data)
+  }
+  if (any(sapply(data[,seperated.labels,with=F],class)=='character')) { 
+    if (!quiet) { cat(" (converting character cols to numeric!)") }
+    for (i in sperated.labels[which(sapply(data[1,seperated.labels,with=F],class)=='character')]) { 
+      data[,i,with=F]<-as.numeric(data[,i,with=F])
     }
   }
   #/*fend*/}}}
@@ -235,12 +229,26 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
     #...Loop through the components 
     for (label in seperated.labels) { 
       #Get the detected and non detected sources
-      data.is.missing<-data.is.missing | (data[[label]]==data.missing)
+      if (is.na(data.missing)) { 
+        data.is.missing<-data.is.missing | is.na(data[[label]])
+      } else if (is.infinite(data.missing)) { 
+        data.is.missing<-data.is.missing | (is.infinite(data[[label]]))
+      } else if (is.nan(data.missing)) { 
+        data.is.missing<-data.is.missing | (is.nan(data[[label]]))
+      } else { 
+        data.is.missing<-data.is.missing | (data[[label]]==data.missing)
+      } 
       data.beyond.thresh<-data.beyond.thresh | 
         ((data[[label]]>max(data.threshold) | data[[label]]<min(data.threshold)) & 
           !data.is.missing)
     }
     #Set the values with missing parts to dummy values 
+    if (any(is.na(data.is.missing))) { 
+      data.is.missing[which(is.na(data.is.missing))]<-TRUE
+    }
+    if (any(is.na(data.beyond.thresh))) { 
+      data.beyond.thresh[which(is.na(data.beyond.thresh))]<-TRUE
+    }
     white.value[data.is.missing]<-NA
     white.value[data.beyond.thresh]<-NA
 

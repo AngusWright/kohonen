@@ -439,7 +439,8 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
 
 plot.kohUmatrix <- function(x, classif, main, palette.name,
                             ncolors, zlim, heatkey, keepMargins,
-                            heatkeywidth, shape, border,zlog=TRUE, ...)
+                            heatkeywidth, shape, border,zlog=TRUE, 
+                            fast=TRUE,...)
 {
   if (is.null(main)) main <- "Neighbour distance plot"
   if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
@@ -449,7 +450,11 @@ plot.kohUmatrix <- function(x, classif, main, palette.name,
     palette.name <- terrain.colors
   }
 
-  nhbrdist <- unit.distances(x$grid)
+  if (fast) { 
+    nhbrdist <- unit.distances.fast(x$grid)
+  } else { 
+    nhbrdist <- unit.distances(x$grid)
+  }
   cddist <- as.matrix(object.distances(x, type = "codes"))
   cddist[abs(nhbrdist - 1) > .001] <- NA
   

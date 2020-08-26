@@ -131,7 +131,9 @@ predict.kohonen <- function(object,
     newmapping <- map(object,
                       newdata = newdata,
                       whatmap = whatmap.new,
-                      ...)$unit.classif
+                      ...)
+    newdistances<-newmapping$distances
+    newmapping<-newmapping$unit.classif
   }
 
   if (length(narows) > 0) {
@@ -165,6 +167,7 @@ predict.kohonen <- function(object,
   ## return the predictions associated to the map units closest to
   ## the new data points
   list(predictions = predictions,
+       distances = newdistances,
        unit.classif = newmapping,
        unit.predictions = unit.predictions,
        whatmap = whatmap)

@@ -41,3 +41,29 @@ unit.distances <- function(grid, toroidal)
     result + t(result)
   }
 }
+
+unit.distances.fast<-function (grid, toroidal) {
+    if (missing(toroidal)) 
+        toroidal <- grid$toroidal
+    if (!toroidal) {
+        if (grid$topo == "hexagonal") {
+            return(as.matrix(stats::dist(grid$pts)))
+        } else {
+            return(as.matrix(stats::dist(grid$pts, method = "maximum")))
+        }
+    }
+    dx<-stats::dist(grid$pts[,1],diag=TRUE,upper=TRUE)
+    dy<-stats::dist(grid$pts[,2],diag=TRUE,upper=TRUE)
+    max.dx<-max(dx)
+    max.dy<-max(dy)
+    dx.diff<-max.dx-dx+1
+    dy.diff<-max.dy-dy+1
+    dx<-pmin(dx,dx.diff)
+    dy<-pmin(dy,dy.diff)
+    if (grid$topo == "hexagonal") {
+        result <- sqrt(dx^2+dy^2)
+    } else {
+        result <- pmax(dx,dy)
+    }
+    return(as.matrix(result))
+}
