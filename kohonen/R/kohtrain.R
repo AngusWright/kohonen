@@ -168,6 +168,10 @@ kohtrain<-function(data,train.expr,
   train.som$maxNA.fraction.training<-train.som$maxNA.fraction
   #}}}
   #/*fend*/}}}
+  #Notify /*fold*/ {{{
+  if (!quiet) { 
+    cat(paste(" - Done",as.time(proc.time()[3]-short.timer,digits=0),"\n")) 
+  }#/*fend*/}}}
   #Return the trained som {{{
   return=train.som
   #}}}
