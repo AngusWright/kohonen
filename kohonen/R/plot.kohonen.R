@@ -849,7 +849,7 @@ add.cluster.boundaries <- function(x, clustering, lwd = 1, ...)
     cluster <- clustering
   }
 
-  nhbrdist <- unit.distances(grd, FALSE) ## new grd is treated as non-toroid
+  nhbrdist <- unit.distances.fast(grd, FALSE) ## new grd is treated as non-toroid
   nhbrdist[col(nhbrdist) >= row(nhbrdist)] <- 2
   neighbours <- which(nhbrdist > .95 & nhbrdist < 1.05, arr.ind = TRUE)
 

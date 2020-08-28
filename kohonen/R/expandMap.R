@@ -8,7 +8,7 @@ expandMap <- function(kohobj) {
                 topo = kohobj$grid$topo,
                 neighbourhood.fct = as.character(kohobj$grid$neighbourhood.fct),
                 toroidal = kohobj$grid$toroidal)
-  nhbrdist <- unit.distances(gr)
+  nhbrdist <- unit.distances.fast(gr)
 
   ## put old codes in the new map
   ncodes <- gr$xdim * gr$ydim

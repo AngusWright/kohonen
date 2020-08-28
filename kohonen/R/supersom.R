@@ -32,7 +32,7 @@ supersom <- function(data,
   
   ## ##########################################################################
   ## Check radius update parameters
-  nhbrdist <- unit.distances(grid)
+  nhbrdist <- unit.distances.fast(grid)
   if (length(radius) == 1)
     radius <- c(radius, 0)
 
