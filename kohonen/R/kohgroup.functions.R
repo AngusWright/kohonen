@@ -116,7 +116,8 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
   return=som
 }#}}}
 
-generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,quiet=FALSE,...) { #{{{
+generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,quiet=FALSE,
+                             hclust,...) { #{{{
   # The function generates SOM groupings based on the unit classifications
   # returned from the SOM training. If new.data is specified, this data is 
   # used to generate new unit classifications (additional options to kohparse 
@@ -148,34 +149,31 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
     som.dim<-c(som$grid$xdim,som$grid$ydim)
     #Convert the IDs from data-to-SOMcell into data-to-cluster {{{
     if (n.cluster.bins<prod(som.dim)) { 
+      if (!quiet) { 
+        cat(paste0("Constructing ",n.cluster.bins," clusters\n"))
+      }
       #There are fewer cluster bins than SOM cells
-      if (length(som$hclust)==0) { 
+      if (missing(hclust) & length(som$hclust)==0) { 
+        if (!quiet) { 
+          cat("Generating hierarchical clustering\n")
+        }
         #The cell clustering has not been done yet
         som$hclust<-hclust(dist(x=som$codes[[1]]))
+      } else { 
+        if (!quiet) { 
+          if (!missing(hclust)) { 
+            cat(paste0("Using input hierarchical clustering\n"))
+            som$hclust<-hclust
+          } else { 
+            cat(paste0("Using existing hierarchical clustering in SOM structure\n"))
+          }
+        }
       }
       #Cut the hclust dendrogram at the desired number of groups
       som.hc = cutree(tree=som$hclust, k=n.cluster.bins)
       #Do we have data to group?
       if (length(somclust)!=0) {
-        ##Group the data in parallel
-        #registerDoParallel(cores=n.cores)
-        #somind<-foreach(i=seq(n.cluster.bins),.combine=rbind,
-        #                .export=c("somcells","som.hc"),.inorder=FALSE)%dopar%{ 
-        #  #Assign the data to the cluster if it's SOMcell belongs to the cluster
-        #  ind<-which(somcells%in%which(som.hc==i))
-        #  return=cbind(ind,rep(i,length(ind)))
-        #} 
-        #if (length(somind)==0 || nrow(somind)!=length(somcells)) { 
-        #  cat("Error in parallelisation! Must rerun in serial.")
-        #  somind<-matrix(NA,ncol=2,nrow=length(somcells)) 
-        #  for(i in seq(n.cluster.bins)){ 
-        #    #Assign the data to the cluster if it's SOMcell belongs to the cluster
-        #    ind<-which(somcells%in%which(som.hc==i))
-        #    somind[ind,]<-cbind(ind,rep(i,length(ind)))
-        #  } 
-        #}
-        ##Update the SOMclust vector
-        #somclust[somind[,1]]<-somind[,2]
+        #Group the data
         somclust<-unsplit(som.hc,factor(somcells,levels=seq(prod(som.dim))),drop=FALSE)
       }
     } else { 
@@ -189,11 +187,9 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
     som.hc<-NULL
   }
   #If using a subset, reconstruct the full unit.classif
-  #if (!missing(subset)) { 
-    somclust.full<-rep(NA,length(som$unit.classif))
-    somclust.full[subset]<-somclust
-    somclust<-somclust.full
-  #} 
+  somclust.full<-rep(NA,length(som$unit.classif))
+  somclust.full[subset]<-somclust
+  somclust<-somclust.full
   #Update the SOM structure
   som$clust.classif<-somclust
   som$n.cluster.bins<-n.cluster.bins
