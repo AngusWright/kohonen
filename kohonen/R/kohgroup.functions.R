@@ -230,8 +230,14 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
     som<-generate.kohgroups(som=som,new.data=data,n.cluster.bins=n.cluster.bins,subset=subset,
                             quiet=quiet,n.cores=n.cores,...)
   } else if (nrow(data)!=length(som$clust.classif)) { 
-    if (!quiet) { 
-      cat("Data length is not equal to SOM cluster classifications. Regenerating groups!\n") 
+    if (length(som$clust.classif)==0) { 
+      if (!quiet) { 
+        cat("There are no SOM cluster classifications. Generating groups for the first time!\n") 
+      }
+    } else { 
+      if (!quiet) { 
+        cat("Data length is not equal to SOM cluster classifications. Regenerating groups!\n") 
+      }
     }
     #Rerun the grouping
     som<-generate.kohgroups(som=som,n.cluster.bins=n.cluster.bins,subset=subset,
