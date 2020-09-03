@@ -117,7 +117,7 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
 }#}}}
 
 generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,quiet=FALSE,
-                             hclust,...) { #{{{
+                             hclust_in,...) { #{{{
   # The function generates SOM groupings based on the unit classifications
   # returned from the SOM training. If new.data is specified, this data is 
   # used to generate new unit classifications (additional options to kohparse 
@@ -153,7 +153,7 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
         cat(paste0("Constructing ",n.cluster.bins," clusters\n"))
       }
       #There are fewer cluster bins than SOM cells
-      if (missing(hclust) & length(som$hclust)==0) { 
+      if (missing(hclust_in) & length(som$hclust)==0) { 
         if (!quiet) { 
           cat("Generating hierarchical clustering\n")
         }
@@ -161,9 +161,9 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
         som$hclust<-hclust(dist(x=som$codes[[1]]))
       } else { 
         if (!quiet) { 
-          if (!missing(hclust)) { 
+          if (!missing(hclust_in)) { 
             cat(paste0("Using input hierarchical clustering\n"))
-            som$hclust<-hclust
+            som$hclust<-hclust_in
           } else { 
             cat(paste0("Using existing hierarchical clustering in SOM structure\n"))
           }
@@ -301,7 +301,7 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
   if (nrow(property)!=n.cluster.bins) { 
     stop("Error in parallelisation: Try Rerunning in serial!")
   } 
-  return=list(property=property,som=som)
+  return=list(property=as.data.frame(property),som=som)
   #}}}
 }#}}}
 
