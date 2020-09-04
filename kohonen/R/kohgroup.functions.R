@@ -198,7 +198,8 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
   return=som
 }#}}}
 
-generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.bins,subset,quiet=FALSE,...) { #{{{
+generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.bins,subset,quiet=FALSE,
+                                     returnMatrix=FALSE,...) { #{{{
   
   if (missing(n.cluster.bins)) { 
     #If missing, read the n.cluster.bins
@@ -286,13 +287,24 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
   evalprop<-function(data.tmp) eval(parse(text=expression))
   som.group.fact<-factor(som.group,levels=seq(n.cluster.bins))
   property<-t(sapply(split(data,som.group.fact),evalprop))
-  if (ncol(property)==length(expr.label)) { 
-    colnames(property)<-expr.label
-  } else if (nrow(property)==length(expr.label)) { 
-    property<-t(property)
-    colnames(property)<-expr.label
+  if (length(expr.label)==0) { 
+    if (nrow(property)==length(som.group)) { 
+      colnames(property)<-paste0('value.',1:ncol(property))
+    } else if (ncol(property)==length(som.group)) { 
+      property<-t(property)
+      colnames(property)<-paste0('value.',1:ncol(property))
+    } else { 
+      stop("The output values have no dimension that matches the inputs?!")
+    }
   } else { 
-    warning("The expression labels are not the same length as the expression outputs!!")
+    if (ncol(property)==length(expr.label)) { 
+      colnames(property)<-expr.label
+    } else if (nrow(property)==length(expr.label)) { 
+      property<-t(property)
+      colnames(property)<-expr.label
+    } else { 
+      warning("The expression labels are not the same length as the expression outputs!!")
+    }
   }
   #if (bycell & (nrow(som$grid$pts)!=n.cluster.bins)) { 
   #  cellproperty<-unsplit(property,factor(som$cell.clust,levels=seq(nrow(som$grid$pts))))
@@ -301,7 +313,11 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
   if (nrow(property)!=n.cluster.bins) { 
     stop("Error in parallelisation: Try Rerunning in serial!")
   } 
-  return=list(property=as.data.frame(property),som=som)
+  if (returnMatrix) { 
+    return=list(property=property,som=som)
+  } else { 
+    return=list(property=as.data.frame(property),som=som)
+  } 
   #}}}
 }#}}}
 
