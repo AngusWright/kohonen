@@ -287,6 +287,9 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
   evalprop<-function(data.tmp) eval(parse(text=expression))
   som.group.fact<-factor(som.group,levels=seq(n.cluster.bins))
   property<-t(sapply(split(data,som.group.fact),evalprop))
+  if (is.null(dim(property))) { 
+    property<-cbind(property)
+  }
   if (length(expr.label)==0) { 
     if (nrow(property)==length(som.group)) { 
       colnames(property)<-paste0('value.',1:ncol(property))
@@ -294,7 +297,9 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
       property<-t(property)
       colnames(property)<-paste0('value.',1:ncol(property))
     } else { 
-      stop("The output values have no dimension that matches the inputs?!")
+      stop(paste0("The output property(s) have no dimension (",dim(property)[1],
+                  ",",dim(property)[2],") that matches the input length (",
+                  length(som.group),")?!"))
     }
   } else { 
     if (ncol(property)==length(expr.label)) { 
