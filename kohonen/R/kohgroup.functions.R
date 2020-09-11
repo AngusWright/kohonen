@@ -321,6 +321,8 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
   if (returnMatrix) { 
     return=list(property=property,som=som)
   } else { 
+    property<-as.data.frame(property)
+    property$group.id<-1:n.cluster.bins
     return=list(property=as.data.frame(property),som=som)
   } 
   #}}}
