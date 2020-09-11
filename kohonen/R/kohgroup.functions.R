@@ -291,15 +291,15 @@ generate.kohgroup.property<-function(som,data,expression,expr.label=NULL,n.cores
     property<-cbind(property)
   }
   if (length(expr.label)==0) { 
-    if (nrow(property)==length(som.group)) { 
+    if (nrow(property)==n.cluster.bins) { 
       colnames(property)<-paste0('value.',1:ncol(property))
-    } else if (ncol(property)==length(som.group)) { 
+    } else if (ncol(property)==n.cluster.bins) { 
       property<-t(property)
       colnames(property)<-paste0('value.',1:ncol(property))
     } else { 
       stop(paste0("The output property(s) have no dimension (",dim(property)[1],
-                  ",",dim(property)[2],") that matches the input length (",
-                  length(som.group),")?!"))
+                  ",",dim(property)[2],") that matches the input number of clusters (",
+                  n.cluster.bins,")?!"))
     }
   } else { 
     if (ncol(property)==length(expr.label)) { 
