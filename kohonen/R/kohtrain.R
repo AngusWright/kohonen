@@ -150,8 +150,27 @@ kohtrain<-function(data,train.expr,
       cat("\n    -> constructing SOM from full data vector")
     }#/*fend*/}}}
     #Calculate the SOM using the full data vector /*fold*/ {{{
-    train.som<-som(data.white, grid=data.grid, rlen=som.iter, alpha=som.rate, cores=n.cores,
-                mode=som.method,maxNA=max.na.frac)
+    train.som<-try(som(data.white, grid=data.grid, rlen=som.iter, alpha=som.rate, cores=n.cores,
+                mode=som.method,maxNA=max.na.frac))
+    if (class(train.som)=='try-error') { 
+      cat("Error in SOM training\n")
+      cat("Input variables were:\n") 
+      cat("data.white:\n") 
+      print(str(data.white))
+      cat("data.grid:\n") 
+      print(str(data.grid))
+      cat("som.iter:\n") 
+      print(str(som.iter))
+      cat("som.rate:\n") 
+      print(str(som.rate))
+      cat("n.cores:\n") 
+      print(str(n.cores))
+      cat("som.method:\n") 
+      print(str(som.method))
+      cat("max.na.frac\n") 
+      print(str(max.na.frac))
+      stop("Error in SOM training")
+    }
     #}}}
     #}}}
   }

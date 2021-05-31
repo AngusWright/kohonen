@@ -5,7 +5,8 @@ check.data <- function(data) {
   if (!is.list(data) | is.data.frame(data))
     data <- list(data)
   if (!all(sapply(data, class) %in% c("numeric", "matrix", "factor")))
-    stop("Argument data should be a list of numeric vectors or matrices, or factors")
+    stop(paste("Argument data should be a list of numeric vectors or matrices, or factors\n",
+        "Currently data is:\n",paste(sapply(data, class),collapse=" ")))
   
   ## Convert vectors to one-column matrices in layers
   if (any (vector.idx <- sapply(data, is.vector, mode = "numeric"))) {
