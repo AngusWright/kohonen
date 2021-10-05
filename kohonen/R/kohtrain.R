@@ -127,6 +127,7 @@ kohtrain<-function(data,train.expr,
         #Error: sparse.var is not found {{{
         stop(paste("Cannot sparse sample data vector using",sparse.var,"because it is not in the data vector!"))
         #}}}
+      }
     } else {
       #Sparse sample randomly from data {{{
       if (!quiet) { 
