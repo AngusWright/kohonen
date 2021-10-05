@@ -7,7 +7,7 @@
 kohtrain<-function(data,train.expr,
                    som.dim=c(10,10),som.topo='hexagonal',som.toroidal=TRUE,som.iter=100,
                    som.rate=c(0.05,0.01),n.cores=1,som.method='pbatch',max.na.frac=1,
-                   train.sparse=FALSE,sparse.frac=0.1,sparse.min.density=3,sparse.var,
+                   train.sparse=FALSE,sparse.frac=0.1,sparse.min.density=3,sparse.var=NULL,
                    data.missing=NA,data.threshold=c(-Inf,Inf),
                    quiet=FALSE,seed) {
   #Function trains a SOM from input data. Performs a number of 
@@ -113,7 +113,7 @@ kohtrain<-function(data,train.expr,
     }
     #}}}
     #Sparse Sample {{{
-    if (!missing(sparse.var) && length(data[[sparse.var]])!=0) { 
+    if (!is.null(sparse.var) && length(data[[sparse.var]])!=0) { 
       #Sparse sample using weights from [[sparse.var]] {{{
       if (!quiet) { 
         cat(paste("\n    -> constructing SOM from sampling of",sparse.var,"in data vector"))
@@ -122,7 +122,7 @@ kohtrain<-function(data,train.expr,
       sparse.index<-sample(nrow(data.white),size=ceiling(sparse.frac*nrow(data.white)),prob=data[[sparse.var]])
       #}}}
       #}}}
-    } else if (!missing(sparse.var) && length(data[[sparse.var]])==0) { 
+    } else if (!is.null(sparse.var) && length(data[[sparse.var]])==0) { 
       #Error: sparse.var is not found {{{
       stop(paste("Cannot sparse sample data vector using",sparse.var,"because it is not in the data vector!"))
       #}}}
