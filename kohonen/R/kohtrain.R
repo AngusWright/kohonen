@@ -113,19 +113,20 @@ kohtrain<-function(data,train.expr,
     }
     #}}}
     #Sparse Sample {{{
-    if (!is.null(sparse.var) && length(data[[sparse.var]])!=0) { 
-      #Sparse sample using weights from [[sparse.var]] {{{
-      if (!quiet) { 
-        cat(paste("\n    -> constructing SOM from sampling of",sparse.var,"in data vector"))
-      }
-      #Sparse indicies are weighted random draws from rows of data {{{
-      sparse.index<-sample(nrow(data.white),size=ceiling(sparse.frac*nrow(data.white)),prob=data[[sparse.var]])
-      #}}}
-      #}}}
-    } else if (!is.null(sparse.var) && length(data[[sparse.var]])==0) { 
-      #Error: sparse.var is not found {{{
-      stop(paste("Cannot sparse sample data vector using",sparse.var,"because it is not in the data vector!"))
-      #}}}
+    if (!is.null(sparse.var)) {
+      if (any(colnames(data)==sparse.var)) { 
+        #Sparse sample using weights from [[sparse.var]] {{{
+        if (!quiet) { 
+          cat(paste("\n    -> constructing SOM from sampling of",sparse.var,"in data vector"))
+        }
+        #Sparse indicies are weighted random draws from rows of data {{{
+        sparse.index<-sample(nrow(data.white),size=ceiling(sparse.frac*nrow(data.white)),prob=data[[sparse.var]])
+        #}}}
+        #}}}
+      } else { 
+        #Error: sparse.var is not found {{{
+        stop(paste("Cannot sparse sample data vector using",sparse.var,"because it is not in the data vector!"))
+        #}}}
     } else {
       #Sparse sample randomly from data {{{
       if (!quiet) { 
