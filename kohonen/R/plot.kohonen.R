@@ -273,8 +273,10 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     showcolors <- as.integer(property)
   }
   bgcolors[!is.na(showcolors)] <- bgcol[showcolors[!is.na(showcolors)]]
-  bgcolors[is.na(showcolors)&!is.na(lowcolors)] <- outer.col[1]
-  bgcolors[is.na(showcolors)&!is.na(hicolors)] <- outer.col[2]
+  if (contin) {
+    bgcolors[is.na(showcolors)&!is.na(lowcolors)] <- outer.col[1]
+    bgcolors[is.na(showcolors)&!is.na(hicolors)] <- outer.col[2]
+  }
 
   # choose symbol to draw based on shape (round, square), and grid (rect, hex)
   shape <- match.arg(shape)
