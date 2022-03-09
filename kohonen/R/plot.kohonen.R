@@ -732,6 +732,10 @@ plot.heatkey <- function (x, property=table(x$unit.classif),
 {
   ncolors <- length(bgcol)
 
+  if (is.factor(property)) { 
+    property=as.numeric(property)
+  }
+
   yrange <- range(x$grid$pts[, 2])
   smallestx <- min(x$grid$pts[,1])
   ## A width of .2 looks OK on my screen
