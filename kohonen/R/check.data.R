@@ -4,7 +4,7 @@ check.data <- function(data) {
   ## Check whether data is a list of data matrices or factors
   if (!is.list(data) | is.data.frame(data))
     data <- list(data)
-  if (!all(sapply(data, class) %in% c("numeric", "matrix", "factor", "array")))
+  if (!all(sapply(data, class) %in% c("numeric", "matrix", "factor", "array","c(\"matrix\", \"array\")")))
     stop(paste("Argument data should be a list of numeric vectors or matrices, or factors\n",
         "Currently data is:\n",paste(sapply(data, class),collapse=" ")))
   

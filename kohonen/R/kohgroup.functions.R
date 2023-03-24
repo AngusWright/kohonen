@@ -6,6 +6,9 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
     cat("Running kohparse\n")
   }
   data.len<-nrow(data)
+  if (data.len==0) { 
+    stop("There is no data to parse! nrow(data)=0!") 
+  }
   if (missing(train.expr)) { 
     if (!quiet) { 
       cat("Loading factor names from SOM\n")

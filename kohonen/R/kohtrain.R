@@ -9,7 +9,7 @@ kohtrain<-function(data,train.expr,
                    som.rate=c(0.05,0.01),n.cores=1,som.method='pbatch',max.na.frac=1,
                    train.sparse=FALSE,sparse.frac=0.1,sparse.min.density=3,sparse.var=NULL,
                    data.missing=NA,data.threshold=c(-Inf,Inf),
-                   quiet=FALSE,seed) {
+                   quiet=FALSE,seed,keep.data=TRUE,...) {
   #Function trains a SOM from input data. Performs a number of 
   #preparatory steps beforehand. 
 
@@ -62,6 +62,8 @@ kohtrain<-function(data,train.expr,
     data.white<-data.white[-bad.index,]
     #}}}
     #}}}
+  } else { 
+    bad.index<-NULL
   }
   #Check that we didn't lose all the data {{{
   if (nrow(data)==0) { 
@@ -139,7 +141,8 @@ kohtrain<-function(data,train.expr,
     #}}}
     #Train the SOM {{{
     train.som<-som(data.white[sparse.index,], grid=data.grid, rlen=som.iter, alpha=som.rate, cores=n.cores,
-    mode=som.method,maxNA=max.na.frac)
+    mode=som.method,maxNA=max.na.frac,...)
+    if (!keep.data) train.som$data<-NULL
     #}}}
     #}}}
     #/*fend*/}}}
@@ -153,7 +156,8 @@ kohtrain<-function(data,train.expr,
     }#/*fend*/}}}
     #Calculate the SOM using the full data vector /*fold*/ {{{
     train.som<-try(som(data.white, grid=data.grid, rlen=som.iter, alpha=som.rate, cores=n.cores,
-                mode=som.method,maxNA=max.na.frac))
+                mode=som.method,maxNA=max.na.frac,...))
+    if (!keep.data) train.som$data<-NULL
     if (class(train.som)=='try-error') { 
       cat("Error in SOM training\n")
       cat("Input variables were:\n") 
@@ -178,6 +182,9 @@ kohtrain<-function(data,train.expr,
   }
   #Initialise the n.cluster.bins variable (used elsewhere){{{
   train.som$n.cluster.bins<-prod(som.dim)
+  #}}}
+  #Save the bad indices {{{
+  train.som$bad.index<-bad.index
   #}}}
   #Save the whitening parameters {{{
   train.som$whiten.param<-whiten.param

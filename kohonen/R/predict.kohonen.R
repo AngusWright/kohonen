@@ -95,6 +95,7 @@ predict.kohonen <- function(object,
     nnewrows <- length(newrownames)
 
     newmapping <- object$unit.classif
+    newdistances <- object$distances
 
     if (any(factorNew <- sapply(newdata, is.factor)))
       newdata[factorNew] <- lapply(newdata[factorNew], classvec2classmat)
@@ -166,6 +167,9 @@ predict.kohonen <- function(object,
       
   ## return the predictions associated to the map units closest to
   ## the new data points
+  if (!exists("newdistances")) { 
+    newdistances<-NULL
+  } 
   list(predictions = predictions,
        distances = newdistances,
        unit.classif = newmapping,
