@@ -33,7 +33,7 @@ plot.kohonen <- function (x,
                           codeRendering = NULL, keepMargins = FALSE,
                           heatkeywidth = 10, zlog = FALSE, 
                           shape = c("round", "straight"),
-                          border = NA, ...)
+                          border = "black", na.color = "gray", ...)
 {
   if (!missing(type)) {
     type <- match.arg(type, c('mapping','property','codes',
@@ -57,7 +57,7 @@ plot.kohonen <- function (x,
                         zlim = zlim, heatkey = heatkey,
                         keepMargins = keepMargins,
                         heatkeywidth = heatkeywidth, shape = shape,
-                        border = border, whatmap = whatmap,  ...),
+                        border = border, whatmap = whatmap, na.color = na.color, ...),
          codes =
            plot.kohcodes(x = x, whatmap = whatmap, main = main,
                          palette.name = palette.name, bgcol = bgcol,
@@ -65,7 +65,8 @@ plot.kohonen <- function (x,
                          keepMargins = keepMargins, shape = shape,
                          border = border, ...),
          quality =
-           plot.kohquality(x = x, classif = classif, main = main,
+           plot.kohquality(x = x, whatmap = whatmap,
+                           classif = classif, main = main,
                            palette.name = palette.name, ncolors = ncolors,
                            zlim = zlim, heatkey = heatkey,
                            keepMargins = keepMargins,
@@ -77,7 +78,7 @@ plot.kohonen <- function (x,
                           zlim = zlim, heatkey = heatkey,
                           keepMargins = keepMargins,
                           heatkeywidth = heatkeywidth, shape = shape,
-                          border = border, zlog= zlog, ...),
+                          border = border, zlog= zlog, na.color = na.color, ...),
          changes =
            plot.kohchanges(x = x, main = main,
                            keepMargins = keepMargins, ...),
@@ -101,8 +102,7 @@ plot.somgrid <- function(x, xlim, ylim, ...)
   #         type = "n", xlab = "", ylab = "", ...)
   if (missing(xlim)) xlim <- c(0, max(x$pts[,1]) + min(x$pts[,1]))
   if (missing(ylim)) ylim <-  c(max(x$pts[,2]) + min(x$pts[,2]), 0)
-  plot(xlim, ylim, axes = FALSE, asp=1,
-           type = "n", xlab = "", ylab = "", ...)
+  plot(xlim, ylim, axes = FALSE, type = "n", xlab = "", ylab = "", asp=1, ...)
 }
 
 
@@ -175,9 +175,9 @@ plot.kohmapping <- function(x, classif, main, labels, pchs, bgcol,
 
 
 plot.kohprop <- function(x, property, main, palette.name, ncolors,
-                         zlim, heatkey, keepMargins, na.col='black',outer.col,
+                         zlim, heatkey, keepMargins, outer.col,
                          heatkeywidth, shape = c("round", "straight"),
-                         border = "black", zlog=FALSE, whatmap, ...)
+                         border = "black", zlog = FALSE, whatmap, na.color = "gray", ...)
 {
   if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
     BlRd<-colorRampPalette(rev(RColorBrewer::brewer.pal(11,"RdBu")))
@@ -234,6 +234,8 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
   if (is.null(zlim)) {
     if (contin) {
       zlim <- range(property, finite = TRUE)
+      if (diff(zlim) < 1e-12) # only one value...
+        zlim <- zlim + c(-.5, .5)
     } else {
       zlim <- range(1:nlevels(property))
     }
@@ -255,7 +257,7 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     outer.col[which(is.na(outer.col))]<-bgcol[c(1,ncolors)][which(is.na(outer.col))]
   }
 
-  bgcolors <- rep(na.col, nrow(x$grid$pts))
+  bgcolors <- rep(na.color, nrow(x$grid$pts))
   if (contin) {
     lowcolors <- as.integer(cut(property,
                                  seq(min(property,na.rm=T),zlim[2],
@@ -383,7 +385,7 @@ plot.kohchanges <- function(x, main, keepMargins, ...)
 
 plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
                            zlim, heatkey, keepMargins, heatkeywidth,
-                           shape, border, zlog, clust=TRUE, ...)
+                           shape, border, zlog, clust = TRUE, na.color = "gray", ...)
 {
   if (zlog) { 
     if (is.null(main)) main <- "log(Counts) plot"
@@ -476,10 +478,11 @@ plot.kohUmatrix <- function(x, classif, main, palette.name,
 }
 
 
-plot.kohquality <- function(x, classif, main, palette.name, ncolors,
+plot.kohquality <- function(x, whatmap, classif, main, palette.name, ncolors,
                             zlim, heatkey, keepMargins, shape, border, zlog=FALSE, ...)
 {
   if (is.null(main)) main <- "Quality plot"
+  if (is.null(whatmap)) whatmap <- x$whatmap
   if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
     BlRd<-colorRampPalette(rev(RColorBrewer::brewer.pal(11,"RdBu")))
     palette.name <- BlRd
@@ -487,24 +490,30 @@ plot.kohquality <- function(x, classif, main, palette.name, ncolors,
     palette.name <- terrain.colors
   }
 
-  distances <- NULL
-  if (is.null(classif) & !is.null(x$unit.classif)) {
-    classif <- x$unit.classif
-    distances <- x$distances
-  } else {
-    if (is.list(classif) &&
-        !is.null(classif$unit.classif) &&
-        !is.null(classif$distances)) {
-      distances <- classif$distances
-      classif <- classif$unit.classif
+  layer.dist<-FALSE
+  if (layer.dist) { 
+    similarities <- layer.distances(x, whatmap = whatmap,
+                                    classif = classif, data = x$data)
+  } else { 
+    distances <- NULL
+    if (is.null(classif) & !is.null(x$unit.classif)) {
+      classif <- x$unit.classif
+      distances <- x$distances
+    } else {
+      if (is.list(classif) &&
+          !is.null(classif$unit.classif) &&
+          !is.null(classif$distances)) {
+        distances <- classif$distances
+        classif <- classif$unit.classif
+      }
     }
-  }
-  if (is.null(distances))
-    stop("No mapping or mapping distances available")
+    if (is.null(distances))
+      stop("No mapping or mapping distances available")
 
-  similarities <- rep(NA, nrow(x$grid$pts))
-  hits <- as.integer(names(table(classif)))
-  similarities[hits] <- sapply(split(distances, classif), mean)
+    similarities <- rep(NA, nrow(x$grid$pts))
+    hits <- as.integer(names(table(classif)))
+    similarities[hits] <- sapply(split(distances, classif), mean)
+  } 
 
   if (zlog) { 
     similarities<-log10(similarities)
@@ -579,7 +588,7 @@ plot.kohcodes <- function(x, whatmap, main, palette.name, bgcol,
       }
 
       plot.kohcodes(huhn, main = main.title, palette.name = palette.name,
-                    bgcol=bgcol, whatmap = NULL,
+                    bgcol = bgcol, whatmap = NULL,
                     codeRendering = cR, keepMargins = TRUE,
                     shape = shape, border = border, ...)
     }
@@ -941,6 +950,10 @@ add.cluster.boundaries <- function(x, clustering, lwd = 1, ...)
 
   }
 
+  opar <- par("xpd")
+  on.exit(par(xpd = opar))
+  par(xpd = NA)
+  
   switch(grd$topo,
          rectangular =
          plot.rect.boundary(neighbours, grd, lwd = lwd, ...),
