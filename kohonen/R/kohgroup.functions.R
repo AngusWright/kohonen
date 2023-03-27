@@ -74,6 +74,10 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
       som$training.classif<-som$unit.classif
       som$training.distances<-som$distances
     }
+    #Remove data entry (can be large and is defunct after parse)
+    if (length(som$data)!=0) { 
+      som$data<-NULL
+    }
     som$unit.classif<-rep(NA,nrow(data.white))
     som$distances<-rep(NA,nrow(data.white))
     good.unit.classif <-
