@@ -259,12 +259,20 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
 
   bgcolors <- rep(na.color, nrow(x$grid$pts))
   if (contin) {
+    min<-min(property,na.rm=T)
+    if (!is.finite(min)) { 
+      min<-min(property[which(is.finite(property))])
+    }
     lowcolors <- as.integer(cut(property,
-                                 seq(min(property,na.rm=T),zlim[2],
+                                 seq(min,zlim[2],
                                      length = ncolors + 1),
                                  include.lowest = TRUE))
+    max<-max(property,na.rm=T)
+    if (!is.finite(max)) { 
+      max<-max(property[which(is.finite(property))])
+    }
     hicolors <- as.integer(cut(property,
-                                 seq(zlim[1],max(property,na.rm=T),
+                                 seq(zlim[1],max,
                                      length = ncolors + 1),
                                  include.lowest = TRUE))
     showcolors <- as.integer(cut(property,
