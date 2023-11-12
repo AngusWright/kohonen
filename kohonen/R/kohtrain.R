@@ -34,7 +34,7 @@ kohtrain<-function(data,train.expr,
   #}}}
   #Seed {{{ 
   if (!missing(seed)) { 
-    set.seed(seed)
+    if (is.finite(seed)) { set.seed(seed) }
   }
   #}}}
   #}}}
@@ -205,7 +205,7 @@ kohtrain<-function(data,train.expr,
   #}}}
 }
 
-kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
+kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,factor.weight) {
   #Check for character columns /*fold*/ {{{
   seperated.labels<-unique((vecsplit(gsub('[-+*\\/\\)\\(]'," ",train.expr),' ')))
   seperated.labels<-seperated.labels[which(seperated.labels!="")]
@@ -228,10 +228,34 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
   data.white<-matrix(NA,nrow=nrow(data),ncol=length(train.expr))
   colnames(data.white)<-train.expr
   #/*fend*/}}}
+  #Check for provided whiten.param and factor.weight {{{
+  if (!missing(whiten.param) & !missing(factor.weight)) { 
+    warning("Both whiten.param and factor.weight are provided. For consistent usage, factor.weight will be ignored!")
+  } 
+  #}}}
   if (missing(whiten.param)) { 
     #Prepare the whitening parameters {{{
     whiten.param<-matrix(NA,nrow=2,ncol=length(train.expr))
     colnames(whiten.param)<-train.expr
+    #Check for provided dimensional weights {{{
+    if (!missing(factor.weight)) { 
+      if (length(factor.weight)!=length(train.expr)) { 
+        stop("provided dimensional weights are not the same length as the training expressions") 
+      }
+      if (any(!is.finite(factor.weight))) { 
+        stop("Some/all provided dimensional weights are not finite?!") 
+      } 
+      if (any(factor.weight==0)) { 
+        stop("Some/all provided dimensional weights are zero?!") 
+      }
+    } else { 
+      #If none provided, set dimensional weights to 1 {{{
+      factor.weight<-rep(1,length(train.expr)) 
+      #}}}
+    }
+    #}}}
+    #Set labels for dimensional weights 
+    names(factor.weight)<-train.expr
     #}}}
   } else if (any(colnames(whiten.param)!=train.expr)) { 
     #Check that the whiten parameters match the training parameters {{{
@@ -290,7 +314,7 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
       mad.tmp<-whiten.param[2,factor.expr]
     } else { 
       med.tmp<-median(white.value,na.rm=T)
-      mad.tmp<-mad(white.value,na.rm=T)
+      mad.tmp<-mad(white.value,na.rm=T)*factor.weight[factor.expr]
     }
     #Whiten the data
     white.value<-(white.value-med.tmp)/mad.tmp
