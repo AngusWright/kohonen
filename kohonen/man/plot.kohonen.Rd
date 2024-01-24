@@ -16,7 +16,7 @@
                        heatkey = TRUE, property, codeRendering = NULL,
                        keepMargins = FALSE, heatkeywidth = .2,
                        shape = c("round", "straight"), border = "black",
-                       \dots)
+                       na.color = "gray", \dots)
 \method{identify}{kohonen}(x, \dots)
 add.cluster.boundaries(x, clustering, lwd = 5, ...)
 }
@@ -62,6 +62,7 @@ add.cluster.boundaries(x, clustering, lwd = 5, ...)
     "rectangular", and produces a map of hexagons when the grid is
     "hexagonal".}
   \item{border}{color of the shape's border.}
+  \item{na.color}{background color matching NA - default "gray".}
   \item{lwd, \dots}{other graphical parameters.}
   \item{clustering}{cluster labels of the map units.}
 }
@@ -89,7 +90,9 @@ add.cluster.boundaries(x, clustering, lwd = 5, ...)
     \item{"quality"}{shows the mean distance of objects mapped to a
       unit to the codebook vector of that unit. The smaller the
       distances, the better the objects are represented by the codebook
-      vectors.}
+      vectors. It is possible to visualize this for the complete set of
+      layers used in training, or for individual layers only (using the
+      \code{whatmap} argument).}
   }
   Function \code{identify.kohonen} shows the number of a unit that is
   clicked on with the mouse. The tolerance is calculated from the ratio

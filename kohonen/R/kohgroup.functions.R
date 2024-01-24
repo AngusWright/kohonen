@@ -6,6 +6,9 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
     cat("Running kohparse\n")
   }
   data.len<-nrow(data)
+  if (data.len==0) { 
+    stop("There is no data to parse! nrow(data)=0!") 
+  }
   if (missing(train.expr)) { 
     if (!quiet) { 
       cat("Loading factor names from SOM\n")
@@ -70,6 +73,12 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
     if (length(som$training.classif)==0) { 
       som$training.classif<-som$unit.classif
       som$training.distances<-som$distances
+    }
+    #Remove data entry (can be large and is defunct after parse)
+    if (length(som$data)!=0) { 
+      for (i in 1:length(som$data)) { 
+        som$data[[i]]<-som$data[[i]][1:2,]
+      }
     }
     som$unit.classif<-rep(NA,nrow(data.white))
     som$distances<-rep(NA,nrow(data.white))

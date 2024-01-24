@@ -9,7 +9,7 @@ kohtrain<-function(data,train.expr,
                    som.rate=c(0.05,0.01),n.cores=1,som.method='pbatch',max.na.frac=1,
                    train.sparse=FALSE,sparse.frac=0.1,sparse.min.density=3,sparse.var=NULL,
                    data.missing=NA,data.threshold=c(-Inf,Inf),
-                   quiet=FALSE,seed,...) {
+                   quiet=FALSE,seed,keep.data=TRUE,...) {
   #Function trains a SOM from input data. Performs a number of 
   #preparatory steps beforehand. 
 
@@ -34,7 +34,7 @@ kohtrain<-function(data,train.expr,
   #}}}
   #Seed {{{ 
   if (!missing(seed)) { 
-    set.seed(seed)
+    if (is.finite(seed)) { set.seed(seed) }
   }
   #}}}
   #}}}
@@ -62,6 +62,8 @@ kohtrain<-function(data,train.expr,
     data.white<-data.white[-bad.index,]
     #}}}
     #}}}
+  } else { 
+    bad.index<-NULL
   }
   #Check that we didn't lose all the data {{{
   if (nrow(data)==0) { 
@@ -140,6 +142,7 @@ kohtrain<-function(data,train.expr,
     #Train the SOM {{{
     train.som<-som(data.white[sparse.index,], grid=data.grid, rlen=som.iter, alpha=som.rate, cores=n.cores,
     mode=som.method,maxNA=max.na.frac,...)
+    if (!keep.data) train.som$data<-NULL
     #}}}
     #}}}
     #/*fend*/}}}
@@ -154,6 +157,7 @@ kohtrain<-function(data,train.expr,
     #Calculate the SOM using the full data vector /*fold*/ {{{
     train.som<-try(som(data.white, grid=data.grid, rlen=som.iter, alpha=som.rate, cores=n.cores,
                 mode=som.method,maxNA=max.na.frac,...))
+    if (!keep.data) train.som$data<-NULL
     if (class(train.som)=='try-error') { 
       cat("Error in SOM training\n")
       cat("Input variables were:\n") 
@@ -179,6 +183,9 @@ kohtrain<-function(data,train.expr,
   #Initialise the n.cluster.bins variable (used elsewhere){{{
   train.som$n.cluster.bins<-prod(som.dim)
   #}}}
+  #Save the bad indices {{{
+  train.som$bad.index<-bad.index
+  #}}}
   #Save the whitening parameters {{{
   train.som$whiten.param<-whiten.param
   #}}}
@@ -198,7 +205,7 @@ kohtrain<-function(data,train.expr,
   #}}}
 }
 
-kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
+kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,factor.weight) {
   #Check for character columns /*fold*/ {{{
   seperated.labels<-unique((vecsplit(gsub('[-+*\\/\\)\\(]'," ",train.expr),' ')))
   seperated.labels<-seperated.labels[which(seperated.labels!="")]
@@ -221,10 +228,34 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
   data.white<-matrix(NA,nrow=nrow(data),ncol=length(train.expr))
   colnames(data.white)<-train.expr
   #/*fend*/}}}
+  #Check for provided whiten.param and factor.weight {{{
+  if (!missing(whiten.param) & !missing(factor.weight)) { 
+    warning("Both whiten.param and factor.weight are provided. For consistent usage, factor.weight will be ignored!")
+  } 
+  #}}}
   if (missing(whiten.param)) { 
     #Prepare the whitening parameters {{{
     whiten.param<-matrix(NA,nrow=2,ncol=length(train.expr))
     colnames(whiten.param)<-train.expr
+    #Check for provided dimensional weights {{{
+    if (!missing(factor.weight)) { 
+      if (length(factor.weight)!=length(train.expr)) { 
+        stop("provided dimensional weights are not the same length as the training expressions") 
+      }
+      if (any(!is.finite(factor.weight))) { 
+        stop("Some/all provided dimensional weights are not finite?!") 
+      } 
+      if (any(factor.weight==0)) { 
+        stop("Some/all provided dimensional weights are zero?!") 
+      }
+    } else { 
+      #If none provided, set dimensional weights to 1 {{{
+      factor.weight<-rep(1,length(train.expr)) 
+      #}}}
+    }
+    #}}}
+    #Set labels for dimensional weights 
+    names(factor.weight)<-train.expr
     #}}}
   } else if (any(colnames(whiten.param)!=train.expr)) { 
     #Check that the whiten parameters match the training parameters {{{
@@ -283,7 +314,7 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold) {
       mad.tmp<-whiten.param[2,factor.expr]
     } else { 
       med.tmp<-median(white.value,na.rm=T)
-      mad.tmp<-mad(white.value,na.rm=T)
+      mad.tmp<-mad(white.value,na.rm=T)*factor.weight[factor.expr]
     }
     #Whiten the data
     white.value<-(white.value-med.tmp)/mad.tmp

@@ -32,6 +32,7 @@ supersom <- function(data,
   
   ## ##########################################################################
   ## Check radius update parameters
+  grid <- check.somgrid(grid)
   nhbrdist <- unit.distances.fast(grid)
   if (length(radius) == 1)
     radius <- c(radius, 0)
@@ -274,6 +275,7 @@ supersom <- function(data,
                    changes = changes,
                    alpha = alpha,
                    radius = radius,
+                   na.rows = narows,
                    user.weights = orig.user.weights,
                    distance.weights = distance.weights,
                    whatmap = whatmap,
@@ -286,6 +288,7 @@ supersom <- function(data,
                    changes = changes,
                    alpha = alpha,
                    radius = radius,
+                   na.rows = narows,
                    user.weights = orig.user.weights,
                    distance.weights = distance.weights,
                    whatmap = whatmap,
