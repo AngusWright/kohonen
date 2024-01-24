@@ -258,11 +258,11 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
   bgcolors <- rep(na.col, nrow(x$grid$pts))
   if (contin) {
     lowcolors <- as.integer(cut(property,
-                                 seq(min(property,na.rm=T),zlim[2],
+                                 seq(min(property[!is.infinite(property)],na.rm=T),zlim[2],
                                      length = ncolors + 1),
                                  include.lowest = TRUE))
     hicolors <- as.integer(cut(property,
-                                 seq(zlim[1],max(property,na.rm=T),
+                                 seq(zlim[1],max(property[!is.infinite(property)],na.rm=T),
                                      length = ncolors + 1),
                                  include.lowest = TRUE))
     showcolors <- as.integer(cut(property,
@@ -383,7 +383,7 @@ plot.kohchanges <- function(x, main, keepMargins, ...)
 
 plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
                            zlim, heatkey, keepMargins, heatkeywidth,
-                           shape, border, zlog, clust=TRUE, ...)
+                           shape, border, zlog, clust=TRUE, subset, ...)
 {
   if (zlog) { 
     if (is.null(main)) main <- "log(Counts) plot"
@@ -408,6 +408,24 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
   }
   if (is.null(classif))
     stop("No mapping available")
+
+  if (!missing(subset)) { 
+    #Check that the subsets are ok
+    if (is.logical(subset)) { 
+      #If logical, make sure is same length as "unit.classif" and/or "clust.classif"
+      if (length(subset)!=length(classif)) { 
+        stop("subset is logical but is not the same length as the existing {unit,clust}.classif vectors")
+      }
+    } else { 
+      #If numeric, make sure that the indices are a subset of "unit.classif" and/or "clust.classif"
+      if (max(subset)>length(classif)){ 
+        stop("the subset indices extend beyond the length of the existing {unit,clust}.classif vectors") 
+      }
+    }
+    classif<-classif[subset]
+    if (is.null(classif)) 
+      stop("subsetting removed all sources from plot!")
+  }
 
   counts <- rep(NA, nrow(x$grid$pts))
   huhn <- table(classif)
