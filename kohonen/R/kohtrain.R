@@ -9,7 +9,7 @@ kohtrain<-function(data,train.expr,
                    som.rate=c(0.05,0.01),n.cores=1,som.method='pbatch',max.na.frac=1,
                    train.sparse=FALSE,sparse.frac=0.1,sparse.min.density=3,sparse.var=NULL,
                    data.missing=NA,data.threshold=c(-Inf,Inf),
-                   quiet=FALSE,seed) {
+                   quiet=FALSE,seed,...) {
   #Function trains a SOM from input data. Performs a number of 
   #preparatory steps beforehand. 
 
@@ -139,7 +139,7 @@ kohtrain<-function(data,train.expr,
     #}}}
     #Train the SOM {{{
     train.som<-som(data.white[sparse.index,], grid=data.grid, rlen=som.iter, alpha=som.rate, cores=n.cores,
-    mode=som.method,maxNA=max.na.frac)
+    mode=som.method,maxNA=max.na.frac,...)
     #}}}
     #}}}
     #/*fend*/}}}
@@ -153,7 +153,7 @@ kohtrain<-function(data,train.expr,
     }#/*fend*/}}}
     #Calculate the SOM using the full data vector /*fold*/ {{{
     train.som<-try(som(data.white, grid=data.grid, rlen=som.iter, alpha=som.rate, cores=n.cores,
-                mode=som.method,maxNA=max.na.frac))
+                mode=som.method,maxNA=max.na.frac,...))
     if (class(train.som)=='try-error') { 
       cat("Error in SOM training\n")
       cat("Input variables were:\n") 
