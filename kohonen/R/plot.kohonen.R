@@ -392,7 +392,7 @@ plot.kohchanges <- function(x, main, keepMargins, ...)
 
 
 plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
-                           zlim, heatkey, keepMargins, heatkeywidth,
+                           zlim, heatkey, keepMargins, heatkeywidth, subset, 
                            shape, border, zlog, clust = TRUE, na.color = "gray", ...)
 {
   if (zlog) { 
