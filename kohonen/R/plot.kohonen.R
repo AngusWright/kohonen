@@ -175,7 +175,7 @@ plot.kohmapping <- function(x, classif, main, labels, pchs, bgcol,
 
 
 plot.kohprop <- function(x, property, main, palette.name, ncolors,
-                         zlim, heatkey, keepMargins, outer.col,
+                         zlim, probcut, heatkey, keepMargins, outer.col,
                          heatkeywidth, shape = c("round", "straight"),
                          border = "black", zlog = FALSE, whatmap, na.color = "gray", ...)
 {
@@ -185,6 +185,7 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
   } else if (is.null(palette.name)) { 
     palette.name <- terrain.colors
   }
+  if (!missing(probcut) & !missing(zlim)) warning("argument probcut is ignored if zlim is specified!") 
 
   if (length(property)==1) { 
     whatmap <- check.whatmap(x, whatmap)
@@ -233,7 +234,17 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
   contin <- !is.factor(property)
   if (is.null(zlim)) {
     if (contin) {
-      zlim <- range(property, finite = TRUE)
+      if (missing(probcut)) { 
+        zlim <- range(property, finite = TRUE)
+      } else if (length(probcut)!=2) { 
+        stop("probcut must be length 2")
+      } else if (any(!is.finite(probcut))) { 
+        stop("probcut must be finite")
+      } else if (any(probcut>1 | probcut<0)) { 
+        stop("probcut must be in the range [0,1]")
+      } else { 
+        zlim<-quantile(property,probs=probcut,na.rm=T)
+      }
       if (diff(zlim) < 1e-12) # only one value...
         zlim <- zlim + c(-.5, .5)
     } else {

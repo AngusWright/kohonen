@@ -8,7 +8,7 @@ kohtrain<-function(data,train.expr,
                    som.dim=c(10,10),som.topo='hexagonal',som.toroidal=TRUE,som.iter=100,
                    som.rate=c(0.05,0.01),n.cores=1,som.method='pbatch',max.na.frac=1,
                    train.sparse=FALSE,sparse.frac=0.1,sparse.min.density=3,sparse.var=NULL,
-                   data.missing=NA,data.threshold=c(-Inf,Inf),
+                   data.missing=NA,data.threshold=c(-Inf,Inf),whiten.input=TRUE,
                    quiet=FALSE,seed,keep.data=TRUE,...) {
   #Function trains a SOM from input data. Performs a number of 
   #preparatory steps beforehand. 
@@ -38,15 +38,32 @@ kohtrain<-function(data,train.expr,
   }
   #}}}
   #}}}
-  #Notify /*fold*/ {{{
-  if (!quiet) { 
-    cat("    -> whitening the input data")
-    short.timer<-proc.time()[3]
-  }#/*fend*/}}}
-  #Whiten the input data {{{
-  kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,data.missing=data.missing,data.threshold=data.threshold)
-  data.white<-kohwhiten.output$data.white
-  whiten.param<-kohwhiten.output$whiten.param
+  #Whiten the data, unless requested otherwise {{{
+  short.timer<-proc.time()[3]
+  if (whiten.input) { 
+    #Notify /*fold*/ {{{
+    if (!quiet) { 
+      cat("    -> whitening the input data")
+    }#/*fend*/}}}
+    #Whiten the input data {{{
+    kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,data.missing=data.missing,data.threshold=data.threshold)
+    data.white<-kohwhiten.output$data.white
+    whiten.param<-kohwhiten.output$whiten.param
+    #}}}
+  } else { 
+    #Keep the data unwhitened (use 0,1 as mean and stdev in whitening) {{{
+    #Notify /*fold*/ {{{
+    if (!quiet) { 
+      cat("    -> **NOT** whitening the input data, as requested!!")
+    }#/*fend*/}}}
+    warning("Not whitening the input data! This can cause catastrophic failures when dynamic ranges vary non-negligibly!") 
+    kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,data.missing=data.missing,data.threshold=data.threshold,
+                                whiten.param=structure(matrix(c(0,1),nrow=2,ncol=length(train.expr)),dimnames=list(list(),train.expr)),
+                                warn=FALSE)
+    data.white<-kohwhiten.output$data.white
+    whiten.param<-kohwhiten.output$whiten.param
+    #}}}
+  } 
   #}}}
   #Check for bad rows in the input data {{{
   row.warning<-''
@@ -205,7 +222,7 @@ kohtrain<-function(data,train.expr,
   #}}}
 }
 
-kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,factor.weight) {
+kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,factor.weight,warn=TRUE) {
   #Check for character columns /*fold*/ {{{
   seperated.labels<-unique((vecsplit(gsub('[-+*\\/\\)\\(]'," ",train.expr),' ')))
   seperated.labels<-seperated.labels[which(seperated.labels!="")]
@@ -230,8 +247,11 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,fac
   #/*fend*/}}}
   #Check for provided whiten.param and factor.weight {{{
   if (!missing(whiten.param) & !missing(factor.weight)) { 
-    warning("Both whiten.param and factor.weight are provided. For consistent usage, factor.weight will be ignored!")
-  } 
+    if (warn) warning("Both whiten.param and factor.weight are provided. For consistent usage, factor.weight will be ignored!")
+  } else if (!missing(whiten.param)) { 
+    factor.weight<-rep(1,length(train.expr))
+    names(factor.weight)<-train.expr
+  }
   #}}}
   if (missing(whiten.param)) { 
     #Prepare the whitening parameters {{{
@@ -260,7 +280,7 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,fac
   } else if (any(colnames(whiten.param)!=train.expr)) { 
     #Check that the whiten parameters match the training parameters {{{
     if (ncol(whiten.param)==length(train.expr)) { 
-      warning(paste0("Whitening parameter names do not match training expressions!\n",
+      if (warn) warning(paste0("Whitening parameter names do not match training expressions!\n",
                      "They are the same length, so we are assuming that they match 1:1!\n"))
       colnames(whiten.param)<-train.expr
     } else { 

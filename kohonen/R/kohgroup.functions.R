@@ -21,6 +21,7 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
             paste(collapse=' ',colnames(som$codes[[1]])[1:min(length(train.expr),3)]),
             '\n'))
     warning(paste("Assuming provided train.expr entries map directly onto the training labels!\n"))
+    colnames(som$whiten.param)<-train.expr
   }
   #Scale the data for use in the SOM
   kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,whiten.param=som$whiten.param,
@@ -109,14 +110,18 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
   if (length(som$unit.classif)!=nrow(data.white)) {
     stop("Parse failed to predict entries for all data")
   }
-  if (!quiet) { 
-    #Prompt
-    cat("Ending\n")
-  }
   #Save the data 
   som$data[[1]]<-data.white
   #Add a vector for training rows all good data
   som$good.phot<-rowAlls(!is.na(data.white))
+  if (!is.null(som$n.cluster.bins)) { 
+    cat("Generating kohgroups for previously defined number of clusters\n")
+    som<-generate.kohgroups(som,n.cluster.bins=som$n.cluster.bins,n.cores=n.cores,quiet=quiet)
+  }
+  if (!quiet) { 
+    #Prompt
+    cat("Ending\n")
+  }
   if (!quiet) { 
     #Closing prompt
     cat(paste0("Done in ",as.time(proc.time()[3]-timer),'\n'))
@@ -126,7 +131,7 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
 }#}}}
 
 generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,quiet=FALSE,
-                             hclust_in,...) { #{{{
+                             method='complete',hclust_in,...) { #{{{
   # The function generates SOM groupings based on the unit classifications
   # returned from the SOM training. If new.data is specified, this data is 
   # used to generate new unit classifications (additional options to kohparse 
@@ -167,7 +172,7 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
           cat("Generating hierarchical clustering\n")
         }
         #The cell clustering has not been done yet
-        som$hclust<-hclust(dist(x=som$codes[[1]]))
+        som$hclust<-hclust(dist(x=som$codes[[1]]),method=method)
       } else { 
         if (!quiet) { 
           if (!missing(hclust_in)) { 
