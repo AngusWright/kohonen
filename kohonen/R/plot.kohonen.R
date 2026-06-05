@@ -404,7 +404,8 @@ plot.kohchanges <- function(x, main, keepMargins, ...)
 
 plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
                            zlim, heatkey, keepMargins, heatkeywidth, subset, 
-                           shape, border, zlog, clust = TRUE, na.color = "gray", ...)
+                           shape, border, zlog, clust = TRUE, na.color = "gray", 
+                           heatkey.label.line=3, ...)
 {
   if (zlog) { 
     if (is.null(main)) main <- "log(Counts) plot"
@@ -471,7 +472,7 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
                palette.name = palette.name, ncolors = ncolors,
                zlim = zlim, heatkey = heatkey, 
                keepMargins = keepMargins, heatkeywidth = heatkeywidth,
-               shape = shape, border = border, heatkey.label.line=3, ...)
+               shape = shape, border = border, ...)
   if (heatkey) {
     mtext(side=2,text=ifelse(zlog,'Log(count)','Count'),line=heatkey.label.line)
   }
