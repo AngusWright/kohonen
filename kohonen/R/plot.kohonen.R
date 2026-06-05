@@ -497,6 +497,10 @@ plot.kohUmatrix <- function(x, classif, main, palette.name,
     nhbrdist <- unit.distances(x$grid)
   }
   cddist <- as.matrix(object.distances(x, type = "codes"))
+  if (all(cddist<1e-100)) { 
+    warning("Object distance computation failed?! Rerunning with stats::dist")
+    cddist <- as.matrix(stats::dist(x$codes[[x$whatmap]]))
+  }
   cddist[abs(nhbrdist - 1) > .001] <- NA
   
   neigh.dists <- colMeans(cddist, na.rm = TRUE)
