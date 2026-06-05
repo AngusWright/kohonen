@@ -471,9 +471,9 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
                palette.name = palette.name, ncolors = ncolors,
                zlim = zlim, heatkey = heatkey, 
                keepMargins = keepMargins, heatkeywidth = heatkeywidth,
-               shape = shape, border = border, ...)
+               shape = shape, border = border, heatkey.label.line=3, ...)
   if (heatkey) {
-    mtext(side=2,text=ifelse(zlog,'Log(count)','Count'),line=3)
+    mtext(side=2,text=ifelse(zlog,'Log(count)','Count'),line=heatkey.label.line)
   }
   invisible(counts)
 }
