@@ -17,7 +17,7 @@
                        shape = c("round", "straight"), border = "black",
                        na.color = "gray", \dots)
 \method{identify}{kohonen}(x, \dots)
-add.cluster.boundaries(x, clustering, lwd = 5, ...)
+add.cluster.boundaries(x, clustering, lwd = 1, ...)
 }
 \arguments{
   \item{x}{kohonen object.}
