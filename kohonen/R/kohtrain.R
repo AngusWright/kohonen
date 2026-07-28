@@ -232,7 +232,7 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,fac
     seperated.labels<-seperated.labels[-func.ind]
     if (!quiet) { cat(" (removed functions from checks)") }
   }
-  if (!any(class(data)=='data-table')) { 
+  if (!any(inherits(data,'data-table'))) { 
     data<-as.data.table(data)
   }
   if (any(sapply(data[,seperated.labels,with=F],class)=='character')) { 
