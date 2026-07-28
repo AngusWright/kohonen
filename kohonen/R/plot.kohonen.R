@@ -71,7 +71,7 @@ plot.kohonen <- function (x,
                            zlim = zlim, heatkey = heatkey,
                            keepMargins = keepMargins,
                            heatkeywidth = heatkeywidth, shape = shape,
-                           border = border, zlog = zlog, ...),
+                           border = border, zlog = zlog, na.color = na.color, ...),
          counts =
            plot.kohcounts(x = x, classif = classif, main = main,
                           palette.name = palette.name, ncolors = ncolors,
@@ -252,11 +252,14 @@ plot.kohprop <- function(x, property, main, palette.name, ncolors,
     }
   }
 
-  if (missing(ncolors)) { 
-    ncolors <- min(length(unique(property[!is.na(property)])), 20)
-  } else if (ncolors > length(unique(property[!is.na(property)]))) {
-    ncolors <- floor(length(unique(property[!is.na(property)]))/2)
-    #print(ncolors)
+  if (missing(ncolors)) {
+    if (contin) {
+      ncolors <- min(length(unique(property[!is.na(property)])), 20)
+    } else {
+      ncolors <- nlevels(property)
+    }
+  #} else if (ncolors > length(unique(property[!is.na(property)]))) {
+  #  ncolors <- floor(length(unique(property[!is.na(property)]))/2)
   }
   bgcol <- palette.name(ncolors)
 
@@ -472,7 +475,7 @@ plot.kohcounts <- function(x, classif, main, palette.name, ncolors,
                palette.name = palette.name, ncolors = ncolors,
                zlim = zlim, heatkey = heatkey, 
                keepMargins = keepMargins, heatkeywidth = heatkeywidth,
-               shape = shape, border = border, ...)
+               shape = shape, border = border, na.color = na.color, ...)
   if (heatkey) {
     mtext(side=2,text=ifelse(zlog,'Log(count)','Count'),line=heatkey.label.line)
   }
@@ -521,7 +524,7 @@ plot.kohUmatrix <- function(x, classif, main, palette.name,
 
 
 plot.kohquality <- function(x, whatmap, classif, main, palette.name, ncolors,
-                            zlim, heatkey, keepMargins, shape, border, zlog=FALSE, ...)
+                            zlim, heatkey, keepMargins, shape, border, zlog=FALSE, na.color = "gray", ...)
 {
   if (is.null(main)) main <- "Quality plot"
   if (is.null(whatmap)) whatmap <- x$whatmap
@@ -564,7 +567,8 @@ plot.kohquality <- function(x, whatmap, classif, main, palette.name, ncolors,
   plot.kohprop(x, property = similarities, main = main, zlog=zlog, 
                palette.name = palette.name, ncolors = ncolors,
                zlim = zlim, heatkey = heatkey, 
-               keepMargins = keepMargins, shape = shape, border = border, ...)
+               keepMargins = keepMargins, shape = shape,
+               border = border, na.color = na.color, ...)
 
   invisible(similarities)
 }
@@ -576,7 +580,7 @@ plot.kohcodes <- function(x, whatmap, main, palette.name, bgcol,
 {
   if (!keepMargins) {
     opar <- par(c("mar"))
-    on.exit(par(opar))
+    on.exit(par(mar=opar))
   }
 
   if (is.null(palette.name) & "RColorBrewer"%in%rownames(installed.packages())) {
