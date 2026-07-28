@@ -388,7 +388,7 @@ kohgroup.loop<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.
   expression<-gsub("data","data.tmp",expression)
   expression<-gsub("full.data.tmp","data",expression)
   #Prepare the parallelisation
-  registerDoParallel(cores=n.cores)
+  doParallel::registerDoParallel(cores=n.cores)
   ##Run the expression per group
   #values<-foreach(i=factors,.combine=rbind,
   #               .export=c('som.group','expression','data'),
