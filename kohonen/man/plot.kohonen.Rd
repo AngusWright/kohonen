@@ -13,7 +13,7 @@
                        pchs = NULL, main = NULL, palette.name = NULL,
                        ncolors, bgcol = NULL, zlim = NULL,
                        heatkey = TRUE, property, codeRendering = NULL,
-                       keepMargins = FALSE, heatkeywidth = .2,
+                       keepMargins = FALSE, heatkeywidth = .2, zlog = FALSE,
                        shape = c("round", "straight"), border = "black",
                        na.color = "gray", \dots)
 \method{identify}{kohonen}(x, \dots)
@@ -48,6 +48,7 @@ add.cluster.boundaries(x, clustering, lwd = 5, ...)
   \item{zlim}{optional range for color coding of unit backgrounds.}
   \item{heatkey}{whether or not to generate a heatkey at the left side
     of the plot in the "property" and "counts" plotting types.}
+  \item{zlog}{should the z-values (such as counts) be log-scaled}
   \item{property}{values to use with the "property" plotting
     type.}
   \item{codeRendering}{How to show the codes. Possible choices:
