@@ -46,7 +46,7 @@ kohtrain<-function(data,train.expr,
       cat("    -> whitening the input data")
     }#/*fend*/}}}
     #Whiten the input data {{{
-    kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,data.missing=data.missing,data.threshold=data.threshold)
+    kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,data.missing=data.missing,data.threshold=data.threshold,quiet=quiet)
     data.white<-kohwhiten.output$data.white
     whiten.param<-kohwhiten.output$whiten.param
     #}}}
@@ -59,7 +59,7 @@ kohtrain<-function(data,train.expr,
     warning("Not whitening the input data! This can cause catastrophic failures when dynamic ranges vary non-negligibly!") 
     kohwhiten.output<-kohwhiten(data=data,train.expr=train.expr,data.missing=data.missing,data.threshold=data.threshold,
                                 whiten.param=structure(matrix(c(0,1),nrow=2,ncol=length(train.expr)),dimnames=list(list(),train.expr)),
-                                warn=FALSE)
+                                warn=FALSE,quiet=quiet)
     data.white<-kohwhiten.output$data.white
     whiten.param<-kohwhiten.output$whiten.param
     #}}}
@@ -175,7 +175,8 @@ kohtrain<-function(data,train.expr,
     train.som<-try(som(data.white, grid=data.grid, rlen=som.iter, alpha=som.rate, cores=n.cores,
                 mode=som.method,maxNA=max.na.frac,...))
     if (!keep.data) train.som$data<-NULL
-    if (class(train.som)=='try-error') { 
+    #if (class(train.som)=='try-error') { 
+    if (inherits(train.som, "try-error") { 
       cat("Error in SOM training\n")
       cat("Input variables were:\n") 
       cat("data.white:\n") 
@@ -222,7 +223,7 @@ kohtrain<-function(data,train.expr,
   #}}}
 }
 
-kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,factor.weight,warn=TRUE) {
+kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,factor.weight,warn=TRUE,quiet=FALSE) {
   #Check for character columns /*fold*/ {{{
   seperated.labels<-unique((vecsplit(gsub('[-+*\\/\\)\\(]'," ",train.expr),' ')))
   seperated.labels<-seperated.labels[which(seperated.labels!="")]
@@ -236,7 +237,7 @@ kohwhiten<-function(data,train.expr,whiten.param,data.missing,data.threshold,fac
   }
   if (any(sapply(data[,seperated.labels,with=F],class)=='character')) { 
     if (!quiet) { cat(" (converting character cols to numeric!)") }
-    for (i in sperated.labels[which(sapply(data[1,seperated.labels,with=F],class)=='character')]) { 
+    for (i in seperated.labels[which(sapply(data[1,seperated.labels,with=F],class)=='character')]) { 
       data[,i,with=F]<-as.numeric(data[,i,with=F])
     }
   }
