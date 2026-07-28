@@ -1,5 +1,6 @@
 \name{unit.distances}
 \alias{unit.distances}
+\alias{unit.distances.fast}
 \alias{somgrid}
 \title{SOM-grid related functions}
 \description{
