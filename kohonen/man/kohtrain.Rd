@@ -19,7 +19,7 @@ kohtrain(data, train.expr, som.dim = c(10, 10),
          seed, keep.data = TRUE, \dots)
 
 kohwhiten(data, train.expr, whiten.param, data.missing, data.threshold,
-          factor.weight, warn = TRUE)
+          factor.weight, warn = TRUE, quiet=FALSE)
 }
 \arguments{
   \item{data}{A data frame or data table containing the training data.}
