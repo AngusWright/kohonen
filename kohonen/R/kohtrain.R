@@ -176,7 +176,7 @@ kohtrain<-function(data,train.expr,
                 mode=som.method,maxNA=max.na.frac,...))
     if (!keep.data) train.som$data<-NULL
     #if (class(train.som)=='try-error') { 
-    if (inherits(train.som, "try-error") { 
+    if (inherits(train.som, "try-error")) { 
       cat("Error in SOM training\n")
       cat("Input variables were:\n") 
       cat("data.white:\n") 
