@@ -13,7 +13,7 @@
                        pchs = NULL, main = NULL, palette.name = NULL,
                        ncolors, bgcol = NULL, zlim = NULL,
                        heatkey = TRUE, property, codeRendering = NULL,
-                       keepMargins = FALSE, heatkeywidth = .2, zlog = FALSE,
+                       keepMargins = FALSE, heatkeywidth = 10, zlog = FALSE,
                        shape = c("round", "straight"), border = "black",
                        na.color = "gray", \dots)
 \method{identify}{kohonen}(x, \dots)
@@ -137,7 +137,7 @@ plot(kohmap, type="mapping",
 ## add background colors to units according to their predicted class labels
 xyfpredictions <- classmat2classvec(getCodes(kohmap, 2))
 bgcols <- c("gray", "pink", "lightgreen")
-plot(kohmap, type="mapping", col = as.integer(vintages),heatkeywidth=0.2
+plot(kohmap, type="mapping", col = as.integer(vintages),heatkeywidth=0.2,
      pchs = as.integer(vintages), bgcol = bgcols[as.integer(xyfpredictions)],
      main = "another mapping plot", shape = "straight", border = NA)
 
