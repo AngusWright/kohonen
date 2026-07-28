@@ -18,6 +18,6 @@ License: GPL (>= 2)
 Depends: R (>= 2.10)
 Imports: Rcpp (>= 0.12.12), foreach, data.table, doParallel, itertools, matrixStats
 Suggests: RColorBrewer, lattice, vegan, helpRfuncs
-Remotes: AngusWright/helpRfuncs
+Remotes: AngusWright/helpRfuncs, ASGR/Rfits
 LinkingTo: Rcpp
 NeedsCompilation: yes

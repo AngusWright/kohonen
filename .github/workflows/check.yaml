@@ -41,7 +41,10 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: |
+            any::rcmdcheck
+            github::AngusWright/helpRfuncs
+            github::ASGR/Rfits
           needs: check
           working-directory: './kohonen'
 
