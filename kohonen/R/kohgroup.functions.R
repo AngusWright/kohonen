@@ -396,7 +396,7 @@ kohgroup.loop<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.
   expression<-gsub("full.data.tmp","data",expression)
   #Prepare the parallelisation
   #doParallel::registerDoParallel(cores=n.cores)
-  cl <- parallel::makePSOCKcluster(num_splits)
+  cl <- parallel::makePSOCKcluster(n.cores)
   doParallel::registerDoParallel(cl)
   on.exit({
     try(parallel::stopCluster(cl), silent = TRUE)
