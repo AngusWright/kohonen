@@ -22,11 +22,7 @@
   nirnet <- xyf(X = nir$spectra[nir$training,],
                 Y = nir$composition[nir$training, 2, drop = FALSE],
                 grid = somgrid(6, 6, "hexagonal"), rlen=500)
-  water.xyf <-
-    predict(nirnet, newdata = nir$spectra[nir$training,],
-            unit.predictions = getCodes(nirnet, 2),
-            whatmap = 1)$prediction
-  plot(nirnet, "property", property = water.xyf[[1]],
+  plot(nirnet, "property", property = getCodes(nirnet,2),
        main="Prediction of water content")
   ## Plot temperatures as circles
   symbols(nirnet$grid$pts[nirnet$unit.classif,] +
@@ -40,11 +36,7 @@
                  Y = matrix(nir$temperature[nir$training], ncol = 1),
                  user.weights = c(1,3),
                  grid = somgrid(6, 6, "hexagonal"), rlen=500)
-  temp.xyf <- predict(nirnet2, newdata = nir$spectra[nir$training,],
-                      unit.predictions = getCodes(nirnet2, 2),
-                      whatmap = 1)$prediction
-
-  plot(nirnet2, "property", property = temp.xyf[[1]],
+  plot(nirnet2, "property", property = getCodes(nirnet2,2),
        palette.name = rainbow,
        main="Prediction of temperatures")
   ## Plot concentrations of water as circles

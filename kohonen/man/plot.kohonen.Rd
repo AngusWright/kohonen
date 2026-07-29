@@ -8,21 +8,23 @@
   of plots are supported.
 }
 \usage{
-\method{plot}{kohonen}(x, type = c("codes", "changes", "counts",
-                       "dist.neighbours", "mapping", "property", "quality"),
+\method{plot}{kohonen}(x, type,
                        whatmap = NULL, classif = NULL, labels = NULL,
                        pchs = NULL, main = NULL, palette.name = NULL,
                        ncolors, bgcol = NULL, zlim = NULL,
                        heatkey = TRUE, property, codeRendering = NULL,
-                       keepMargins = FALSE, heatkeywidth = .2,
+                       keepMargins = FALSE, heatkeywidth = 10, zlog = FALSE,
                        shape = c("round", "straight"), border = "black",
                        na.color = "gray", \dots)
 \method{identify}{kohonen}(x, \dots)
-add.cluster.boundaries(x, clustering, lwd = 5, ...)
+add.cluster.boundaries(x, clustering, lwd = 1, ...)
 }
 \arguments{
   \item{x}{kohonen object.}
-  \item{type}{type of plot. (Wow!)}
+  \item{type}{type of plot. Should be one of "codes", "changes", "counts",
+                       "dist.neighbours", "mapping", "property", or "quality". 
+    If missing, it defaults to "counts" if property is also missing, or "property"
+    \code{property} is present.}
   \item{whatmap}{For a "codes" plot: what maps
     to show; for the "dist.neighbours" plot: what maps to take into
     account when calculating distances to neighbouring units.}
@@ -46,6 +48,7 @@ add.cluster.boundaries(x, clustering, lwd = 5, ...)
   \item{zlim}{optional range for color coding of unit backgrounds.}
   \item{heatkey}{whether or not to generate a heatkey at the left side
     of the plot in the "property" and "counts" plotting types.}
+  \item{zlog}{should the z-values (such as counts) be log-scaled}
   \item{property}{values to use with the "property" plotting
     type.}
   \item{codeRendering}{How to show the codes. Possible choices:
@@ -54,9 +57,8 @@ add.cluster.boundaries(x, clustering, lwd = 5, ...)
     graphical parameters after plotting the kohonen map. If \code{TRUE},
     one retains the map coordinate system so that one can add symbols to
     the plot, or map unit numbers using the \code{identify} function.}
-  \item{heatkeywidth}{width of the colour key; the default of 0.2 should
-    work in most cases but in some cases, e.g. when plotting multiple
-    figures, it may need to be adjusted.}
+  \item{heatkeywidth}{width of the colour key; the default of 10 is designed 
+   for large maps typical to large datasets (with 10s or 100s of cells on a side).}
   \item{shape}{kind shape to be drawn: "round" (circle) or "straight".
     Choosing "straight" produces a map of squares when the grid is
     "rectangular", and produces a map of hexagons when the grid is
@@ -120,22 +122,22 @@ set.seed(7)
 kohmap <- xyf(scale(wines), vintages,
               grid = somgrid(5, 5, "hexagonal"), rlen=100)
 plot(kohmap, type="changes")
-counts <- plot(kohmap, type="counts", shape = "straight")
+counts <- plot(kohmap, type="counts", shape = "straight",heatkeywidth=0.2)
 
 ## show both sets of codebook vectors in the map
 par(mfrow = c(1,2))
 plot(kohmap, type="codes", main = c("Codes X", "Codes Y"))
 
 par(mfrow = c(1,1))
-similarities <- plot(kohmap, type="quality", palette.name = terrain.colors)
+similarities <- plot(kohmap, type="quality", palette.name = terrain.colors,heatkeywidth=0.2)
 plot(kohmap, type="mapping",
      labels = as.integer(vintages), col = as.integer(vintages),
-     main = "mapping plot")
+     main = "mapping plot",heatkeywidth=0.2)
 
 ## add background colors to units according to their predicted class labels
 xyfpredictions <- classmat2classvec(getCodes(kohmap, 2))
 bgcols <- c("gray", "pink", "lightgreen")
-plot(kohmap, type="mapping", col = as.integer(vintages),
+plot(kohmap, type="mapping", col = as.integer(vintages),heatkeywidth=0.2,
      pchs = as.integer(vintages), bgcol = bgcols[as.integer(xyfpredictions)],
      main = "another mapping plot", shape = "straight", border = NA)
 
@@ -143,10 +145,10 @@ plot(kohmap, type="mapping", col = as.integer(vintages),
 set.seed(7)
 sommap <- som(scale(wines), grid = somgrid(6, 4, "hexagonal"))
 plot(sommap, type = "property", property = getCodes(sommap, 1)[,1],
-     main = colnames(getCodes(sommap, 1))[1])
+     main = colnames(getCodes(sommap, 1))[1],heatkeywidth=0.2)
 
 ## Show the U matrix
-Umat <- plot(sommap, type="dist.neighbours", main = "SOM neighbour distances")
+Umat <- plot(sommap, type="dist.neighbours", main = "SOM neighbour distances",heatkeywidth=0.2)
 ## use hierarchical clustering to cluster the codebook vectors
 som.hc <- cutree(hclust(object.distances(sommap, "codes")), 5)
 add.cluster.boundaries(sommap, som.hc)
@@ -154,7 +156,7 @@ add.cluster.boundaries(sommap, som.hc)
 ## and the same for rectangular maps
 set.seed(7)
 sommap <- som(scale(wines),grid = somgrid(6, 4, "rectangular"))
-plot(sommap, type="dist.neighbours", main = "SOM neighbour distances")
+plot(sommap, type="dist.neighbours", main = "SOM neighbour distances",heatkeywidth=0.2)
 ## use hierarchical clustering to cluster the codebook vectors
 som.hc <- cutree(hclust(object.distances(sommap, "codes")), 5)
 add.cluster.boundaries(sommap, som.hc)

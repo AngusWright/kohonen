@@ -59,7 +59,7 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
   #Setup the number of processes
   if (n.cores<1) {
     num_splits<-try(as.numeric(system("grep -c ^processor /proc/cpuinfo",intern=T)))
-    if (class(num_splits)!='try-error' || length(num_splits)==0 || !is.finite(num_splits)) { 
+    if (inherits(num_splits, "try-error") || length(num_splits)==0 || !is.finite(num_splits)) { 
       cat("core number lookup failed. Running in serial!\n")
       warning("core number lookup failed. Running in serial!")
       num_splits<-1
@@ -69,7 +69,14 @@ kohparse<-function(som,data,train.expr,data.missing=NA,data.threshold=c(-Inf,Inf
   }
   if (num_splits > 1) { 
     #Run the data prediction in parallel
-    registerDoParallel(cores=num_splits)
+    #doParallel::registerDoParallel(cores=num_splits)
+    cl <- parallel::makePSOCKcluster(num_splits)
+    doParallel::registerDoParallel(cl)
+    on.exit({
+      try(parallel::stopCluster(cl), silent = TRUE)
+      foreach::registerDoSEQ()
+    }, add = TRUE)
+
     #Save the training classification
     if (length(som$training.classif)==0) { 
       som$training.classif<-som$unit.classif
@@ -148,7 +155,7 @@ generate.kohgroups<-function(som,n.cluster.bins=Inf,n.cores=1,new.data,subset,qu
     somcells<-somclust<-som$unit.classif[subset]
   } else { 
     #If needed, convert subset from logical
-    if (class(subset)=="logical") {
+    if (inherits(subset,"logical")) {
       subset<-which(subset)
     }
     #Is the subset the NULL set?
@@ -388,7 +395,13 @@ kohgroup.loop<-function(som,data,expression,expr.label=NULL,n.cores=1,n.cluster.
   expression<-gsub("data","data.tmp",expression)
   expression<-gsub("full.data.tmp","data",expression)
   #Prepare the parallelisation
-  registerDoParallel(cores=n.cores)
+  #doParallel::registerDoParallel(cores=n.cores)
+  cl <- parallel::makePSOCKcluster(n.cores)
+  doParallel::registerDoParallel(cl)
+  on.exit({
+    try(parallel::stopCluster(cl), silent = TRUE)
+    foreach::registerDoSEQ()
+  }, add = TRUE)
   ##Run the expression per group
   #values<-foreach(i=factors,.combine=rbind,
   #               .export=c('som.group','expression','data'),
