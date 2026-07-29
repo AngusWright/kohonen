@@ -1,6 +1,5 @@
 # kohonen 
-[![](http://www.r-pkg.org/badges/version/kohonen)](http://www.r-pkg.org/pkg/kohonen)
-[![CRAN RStudio mirror downloads](http://cranlogs.r-pkg.org/badges/kohonen)](http://www.r-pkg.org/pkg/kohonen)
+![R-CMD-check](https://github.com/AngusWright/helpRfuncs/workflows/R-CMD-check/badge.svg)
 
 The kohonen R package provides functions to train self-organizing maps (SOMs) as well as tools to analyze trained maps and generate predictions.
 
